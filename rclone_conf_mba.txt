@@ -1,0 +1,21 @@
+# configurazione rclone con parametro '--filter-from' specifico per il download
+
+# 1. Inclusioni specifiche anche nascoste
++ Immagini/.AI 🤖/**
++ Video/.Grok/**
+
+# 2. Esclusione generale dei file/cartelle nascoste
+- .*{/**,}
+
+# 3. Altre esclusioni e inclusioni standard
+- Documenti/Backup/**
++ Documenti/**
+- Immagini/Windows/**
++ Immagini/**
++ Musica/**
++ Scrivania/**
+- Video/Radeon ReLive/**
++ Video/**
+
+# 4. Escludi tutto il resto
+- *
