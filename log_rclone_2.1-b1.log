@@ -590,3 +590,44 @@ Elapsed time:         8.2s
 
 2026-01-18 19:58:10 - Script rclone 2.1-b1 terminato.
 
+2026-01-18 23:36:11 - AVVIO SCRIPT rclone 2.1-b1
+2026-01-18 23:36:11 - Uso rsync --detect-renamed come funzione custom
+2026-01-18 23:36:12 - Esecuzione in --dry-run per comando rclone, non verranno registrate modifiche.
+2026-01-18 23:36:14 - Script rclone 2.1-b1 terminato.
+
+2026-01-18 23:39:40 - AVVIO SCRIPT rclone 2.1-b1
+2026-01-18 23:39:40 - Uso rsync --detect-renamed come funzione custom
+2026-01-18 23:39:42 - Esecuzione in --dry-run per comando rclone, non verranno registrate modifiche.
+Attivazione funzione Copy.
+2026-01-18 23:39:43 - Script rclone 2.1-b1 terminato.
+
+2026-01-18 23:43:30 - AVVIO SCRIPT rclone 2.1-b1
+2026-01-18 23:43:30 - Uso rsync --detect-renamed come funzione custom
+2026-01-18 23:43:32 - Esecuzione in --dry-run per comando rclone, non verranno registrate modifiche.
+2026-01-18 23:43:33 - Attivazione funzione copy di rclone su OneDrive.
+2026/01/18 23:43:34 NOTICE: Immagini/Schermate: Skipped set directory modification time as --dry-run is set
+2026/01/18 23:43:35 NOTICE: Documenti/GitHub: Duplicate directory found in source - ignoring
+2026/01/18 23:43:37 NOTICE: Immagini/Schermate/Schermata_20260118_220017.png: Skipped copy as --dry-run is set (size 182.565Ki)
+2026/01/18 23:43:37 NOTICE: Immagini/Schermate/Schermata_20260118_220023.png: Skipped copy as --dry-run is set (size 4.609Mi)
+2026/01/18 23:43:39 NOTICE: 
+Transferred:   	    4.787 MiB / 4.787 MiB, 100%, 0 B/s, ETA -
+Checks:              1998 / 1998, 100%, Listed 4247
+Transferred:            2 / 2, 100%
+Elapsed time:         5.6s
+
+2026-01-18 23:43:39 - Attivazione funzione copy di rclone su Google Drive.
+2026/01/18 23:43:41 NOTICE: Immagini/Schermate: Skipped set directory modification time as --dry-run is set (size 0)
+2026/01/18 23:43:41 NOTICE: Documenti/GitHub/rclone_script: Skipped set directory modification time as --dry-run is set (size 0)
+2026/01/18 23:43:42 NOTICE: Immagini/Schermate/Schermata_20260118_220017.png: Skipped copy as --dry-run is set (size 182.565Ki)
+2026/01/18 23:43:42 NOTICE: Immagini/Schermate/Schermata_20260118_220023.png: Skipped copy as --dry-run is set (size 4.609Mi)
+2026/01/18 23:43:42 NOTICE: Documenti/GitHub/rclone_script/nohup.out: Skipped copy as --dry-run is set (size 35.597Ki)
+2026/01/18 23:43:42 NOTICE: Documenti/GitHub/rclone_script/README.md: Skipped copy as --dry-run is set (size 370)
+2026/01/18 23:43:42 NOTICE: Documenti/GitHub/rclone_script/rclone_script.sh: Skipped copy as --dry-run is set (size 15.495Ki)
+2026/01/18 23:43:45 NOTICE: 
+Transferred:   	    4.838 MiB / 4.838 MiB, 100%, 0 B/s, ETA -
+Checks:              2003 / 2003, 100%, Listed 4258
+Transferred:            5 / 5, 100%
+Elapsed time:         4.7s
+
+2026-01-18 23:43:45 - Script rclone 2.1-b1 terminato.
+

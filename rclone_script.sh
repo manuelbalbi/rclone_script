@@ -20,6 +20,10 @@ VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync
 # Seleziona il livello attivando/disattivando il commento
 LOGLVL="INFO"
 #LOGLVL="DEBUG"
+# Configurazioni base dello script
+DR="Attivare dry-run"
+DRYRUN="--dry-run"
+TSYNC=""
 
 # Definizione valori colori
 GREEN="\e[38;2;97;187;70m"
@@ -55,7 +59,10 @@ if [ -z "$BASH_VERSION" ]; then
 fi
 
 # Controllo presenza dipendenze
-REQUISITI=("rclone" "rsync")
+REQUISITI=(
+"rclone"
+"rsync"
+)
 
 for bin in "${REQUISITI[@]}"; do
     if ! command -v "$bin" &> /dev/null; then
@@ -97,6 +104,11 @@ display_message() {
 
 # -------------------------------------------------------------------------------------------------
 # -------------------------------------- INIZIO CORPO SCRIPT --------------------------------------
+# -------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------
+
 echo -e "$(date '+%Y-%m-%d %H:%M:%S') - AVVIO SCRIPT rclone $VERSIONE$BETA" >> $LOGFILE
 
 clear
@@ -160,9 +172,6 @@ for src in "${!mappe[@]}"; do
 done
 
 # ----------------------------------- INIZIALIZZAZIONE DRYU-RUN -----------------------------------
-DR="N"
-DRYRUN="--dry-run"
-TSYNC=""
 
 #   prompt comando dry-run
 echo -e "Copia locale completata.\n🔁 Avvio sync con rclone."
@@ -225,7 +234,7 @@ fi
 # ----------------------------------- INIZIALIZZAZIONE SERVIZIO -----------------------------------
 case $TSYNC in
     "Quit")
-        # 2.b.1 esce dallo script
+        # Esce dallo script
         echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Uscita dallo script su richiesta utente." >> $LOGFILE
         trap "tput csr 0 $(($(tput lines) - 1)); clear; echo 'Uscita dallo script.'; exit" EXIT
         exit
