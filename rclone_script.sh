@@ -1,28 +1,27 @@
 #!/bin/bash
-#   --- script di sincronizzazione con i servizi cloud utilizzando rclone ---
-#   --- attivazione di backup e copia di file selezionati con rsync e cp ---
+#   -------------- SCRIPT DI SINCRONIZZAZIONE CON I SERVIZI CLOUD UTILIZZANDO rclone --------------
+#   --------------- ATTIVAZIONE DI BACKUP E COPIA DI FILE SELEZIONATI CON rsync / cp --------------
 
-if [ -z "$BASH_VERSION" ]; then
-    echo "Questo script richiede Bash."
-    exit 1
-fi
-
-#   versione dello script
+# -------------------------------------------------------------------------------------------------
+# --------------------------------- INIZIO DICHIARAZIONE VARIABILI --------------------------------
+# Dichiarazione versione script
+# $VERSIONE contiene la dichiarazione della revisione
+# $BETA indica se si tratta di una versione beta, nel caso di versione finale la variabile $BETA=""
 VERSIONE="2.1" #    VERSIONE    2.1
 BETA="-b1" #        BETA        b1
 
-#   configurazione file lettura e scrittura
+# Configurazione file lettura e scrittura
 LOGFILE="log_rclone_$VERSIONE$BETA.log"
 CONFUP="rclone_conf.txt"
 CONFDW="rclone_conf_mba.txt"
 VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync
 
-#   livello di informazioni registrate da rclone nel file di log
-#   seleziona il livello attivando/disattivando il commento
+# Livello di informazioni registrate da rclone nel file di log
+# Seleziona il livello attivando/disattivando il commento
 LOGLVL="INFO"
 #LOGLVL="DEBUG"
 
-#   definizione valori colori
+# Definizione valori colori
 GREEN="\e[38;2;97;187;70m"
 YELLOW="\e[38;2;245;211;0m"
 ORANGE="\e[38;2;247;148;29m"
@@ -31,12 +30,12 @@ PURPLE="\e[38;2;151;57;153m"
 BLUE="\e[38;2;0;156;222m"
 RESET="\e[0m"
 
-#   configurazione estetica per gum/ugum mediante variabili d'ambiente
+# Configurazione estetica per gum/ugum mediante variabili d'ambiente
 export GUM_CHOOSE_CURSOR=" "
 export GUM_CHOOSE_CURSOR_FOREGROUND="#FF9F1C"
 export GUM_CHOOSE_SELECTED_FOREGROUND="#FF9F1C"
 
-#   configurazione spinner
+# Configurazione spinner
 # Define an array of Braille patterns for a spinner
 six_dot_cell_pattern=("⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇")
 eight_dot_cell_pattern=("⣾" "⣷" "⣯" "⣟" "⡿" "⢿" "⣻" "⣽")
@@ -47,6 +46,26 @@ braille_spinner=("${eight_dot_cell_pattern[@]}")
 # Set the duration for each spinner frame (in seconds)
 frame_duration=0.1
 
+# -------------------------------------------------------------------------------------------------
+# ---------------------------------------- INIZIO CONTROLLI ---------------------------------------
+# Controllo versione bash
+if [ -z "$BASH_VERSION" ]; then
+    echo "Questo script richiede Bash."
+    exit 1
+fi
+
+# Controllo presenza dipendenze
+REQUISITI=("rclone" "rsync")
+
+for bin in "${REQUISITI[@]}"; do
+    if ! command -v "$bin" &> /dev/null; then
+        trap "tput csr 0 $(($(tput lines) - 1)); clear; echo 'Script interrotto, non è installato il comando $bin.'; exit" EXIT
+        echo -e "$(date '+%Y-%m-%d %H:%M:%S') - MANCA requisito $bin" >> $LOGFILE
+        exit 1
+    fi
+done
+
+# -------------------------------------------------------------------------------------------------
 # Function to start the spinner in the background
 start_spinner() {
   (
@@ -76,6 +95,8 @@ display_message() {
   fi
 }
 
+# -------------------------------------------------------------------------------------------------
+# -------------------------------------- INIZIO CORPO SCRIPT --------------------------------------
 echo -e "$(date '+%Y-%m-%d %H:%M:%S') - AVVIO SCRIPT rclone $VERSIONE$BETA" >> $LOGFILE
 
 clear
@@ -93,18 +114,7 @@ echo -e "${BLUE}                                                                
 echo -e "${BLUE}                                                                     ⠉ ${RESET} di Manuel Balbi - \e[1;37mv.$VERSIONE$BETA${RESET}"
 tput cup 9 0
 
-#   controllo presenza dipendenze
-REQUISITI=("rclone" "rsync")
-
-for bin in "${REQUISITI[@]}"; do
-    if ! command -v "$bin" &> /dev/null; then
-        trap "tput csr 0 $(($(tput lines) - 1)); clear; echo 'Script interrotto, non è installato il comando $bin.'; exit" EXIT
-        echo -e "$(date '+%Y-%m-%d %H:%M:%S') - MANCA requisito $bin" >> $LOGFILE
-        exit 1
-    fi
-done
-
-# Backup dei documenti presenti nella cartella Documenti
+# ---------------------------------------- BACKUP DOCUMENTI ---------------------------------------
 echo -n "🔄 Backup documenti contenuti nella cartella Documenti, "
 #   verifica presenza funzione custom/standard su rsync
 if rsync --help | grep -q "detect-renamed"; then
@@ -121,6 +131,7 @@ fi
 rsync --backup --update --archive $EXTRA_FLAGS --progress ~/Documenti/*.* ~/Documenti/Backup 2> >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') $line"; done >> $LOGFILE)
 rsync --backup --update --archive $EXTRA_FLAGS --progress ~/Documenti/bash/*.* ~/Documenti/Backup/bash 2> >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') $line"; done >> $LOGFILE)
 
+# ---------------------------------- COPIA DOCUMENTI SELEZIONATI ----------------------------------
 # Definizione degli array contenenti i percorsi da copiare per utilizzo con Bash 4.0 e successivo
 declare -A mappe=(
     ["$HOME/.local/share/Steam/userdata/"]="$HOME/Immagini/Steam/"
@@ -148,7 +159,7 @@ for src in "${!mappe[@]}"; do
     done
 done
 
-# 2.    --- configurazione rclone ---
+# ----------------------------------- INIZIALIZZAZIONE DRYU-RUN -----------------------------------
 DR="N"
 DRYRUN="--dry-run"
 TSYNC=""
@@ -177,7 +188,7 @@ if [ -z "$DR" ]; then
     exit 1
 fi
 
-# 2.a   scelta se disattivare il dry-run (esecuzione senza elaborazione)
+# Scelta dry-run (esecuzione senza elaborazione)
 case $DR in
     "Disattivare dry-run")
         # 2.a.1 disabilita il dry-run, esegue i comandi - scelta utente positiva
@@ -189,7 +200,7 @@ case $DR in
         echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Esecuzione in --dry-run per comando rclone, non verranno registrate modifiche." >> $LOGFILE;;
 esac
 
-#   scelta livello di servizio
+# --------------------------------------- SELEZIONE SERVIZIO --------------------------------------
 if command -v ugum >/dev/null 2>&1; then
     TSYNC=$(ugum choose "Copy" "Bisync" "Download" "Quit")
 elif command -v gum >/dev/null 2>&1; then
@@ -211,8 +222,7 @@ if [ -z "$TSYNC" ]; then
     exit 1
 fi
 
-
-# 2.b   scelta comado da attivare
+# ----------------------------------- INIZIALIZZAZIONE SERVIZIO -----------------------------------
 case $TSYNC in
     "Quit")
         # 2.b.1 esce dallo script
@@ -220,14 +230,14 @@ case $TSYNC in
         trap "tput csr 0 $(($(tput lines) - 1)); clear; echo 'Uscita dallo script.'; exit" EXIT
         exit
         ;;
-#    "Sync")
-#        # 2.b.2 sincronizza il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
-#        echo -e "Attivazione funzione ${ORANGE}Sync${RESET}."
-#        echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Sincronizzazione con funzione sync di rclone su OneDrive. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> $LOGFILE
-#        systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --progress --log-level $LOGLVL --log-file=$LOGFILE --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/
-#        echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Sincronizzazione con funzione sync di rclone su Google Drive. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> $LOGFILE
-#        systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --progress --log-level $LOGLVL --log-file=$LOGFILE --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ Google:/
-#        ;;
+    "Sync") # questo codice anche se attivo non può essere utilizzato in quanto manca l'opzione in selezione
+        # 2.b.2 sincronizza il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
+        echo -e "Attivazione funzione ${ORANGE}Sync${RESET}."
+        echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Sincronizzazione con funzione sync di rclone su OneDrive. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> $LOGFILE
+        systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --progress --log-level $LOGLVL --log-file=$LOGFILE --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/
+        echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Sincronizzazione con funzione sync di rclone su Google Drive. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> $LOGFILE
+        systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --progress --log-level $LOGLVL --log-file=$LOGFILE --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ Google:/
+        ;;
     "Download")
         # 2.b.3 effettua il download integrale dal servizio remoto OneDrive secondo i filtri stabiliti in $CONFDW
         echo -e "Attivazione ${ORANGE}Download mediante funzione sync${RESET}."
