@@ -1,5 +1,4 @@
 
 *.log
-log_rclone_2.1-b1.log
-*.log
 *.out
+
