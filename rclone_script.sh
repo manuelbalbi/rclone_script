@@ -2,15 +2,17 @@
 #   --- script di sincronizzazione con i servizi cloud utilizzando rclone ---
 #   --- attivazione di backup e copia di file selezionati con rsync e cp ---
 
+if [ -z "$BASH_VERSION" ]; then
+    echo "Questo script richiede Bash."
+    exit 1
+fi
+
 #   versione dello script
-VERSIONE="2.0" # prima beta dello script rivisto
-VERSIONE="2.0.1" # aggiunto spinner per attesa copyto finale
-VERSIONE="2.0.2" # aggiunta copia immaigni generate da Stability Matrix
-VERSIONE="2.0.3" # aggiunta controlli in uscita per identificare l'esecuzione dal terminale o dal Desktop Enviroment
-VERSIONE="2.0.4" # introduzione parametro --max-age con variabile $VITA per impostare il limite di vecchiaia con bisync e disattivazione funzione sync (sul remoto OneDrive ci sono elementi non sincronizzati sul locale)
+VERSIONE="2.1" #    VERSIONE    2.1
+BETA="-b1" #        BETA        b1
 
 #   configurazione file lettura e scrittura
-LOGFILE="log_rclone_$VERSIONE.log"
+LOGFILE="log_rclone_$VERSIONE$BETA.log"
 CONFUP="rclone_conf.txt"
 CONFDW="rclone_conf_mba.txt"
 VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync
@@ -74,7 +76,7 @@ display_message() {
   fi
 }
 
-echo -e "$(date '+%Y-%m-%d %H:%M:%S') - AVVIO SCRIPT rclone $VERSIONE" >> $LOGFILE
+echo -e "$(date '+%Y-%m-%d %H:%M:%S') - AVVIO SCRIPT rclone $VERSIONE$BETA" >> $LOGFILE
 
 clear
 tput csr 9 $(($(tput lines) - 1))
@@ -88,7 +90,7 @@ echo -e "${RED}    ⣿⡇   ⢸⣿     ⣿⡇ ⢿⡇   ⢸⣿ ⢸⣿   ⢸⡇ �
 echo -e "${PURPLE}    ⣿⡇    ⢿⣦⣀⣀⣀ ⣿⡇ ⠈⣿⣄⣀⣀⣿⠃ ⢸⣿   ⢸⡇  ⢿⣦⣀⣀⣀⡄    ⢠⣀ ⣀⣼⠇ ⠻⣷⣀⣀⣀ ⢸⣿    ⣿⡇ ⢸⣿⣄⣀⣀⣾⠏  ⣿⣄⢀ ⣠⣾⣿⣁⣀⣀⡄${RESET}"
 echo -e "${BLUE}    ⠉⠁     ⠈⠉⠉⠁ ⠉⠁   ⠉⠉⠉   ⠈⠉   ⠈⠁   ⠈⠉⠉⠉      ⠉⠉⠉⠁    ⠉⠉⠉ ⠈⠉    ⠉⠁ ⢸⣿ ⠉⠉⠁    ⠉⠉ ⠻⠿⠿⠿⠿⠿⠃${RESET}"
 echo -e "${BLUE}                                                                    ⢸⣿${RESET}"
-echo -e "${BLUE}                                                                     ⠉ ${RESET} di Manuel Balbi - \e[1;37mv.$VERSIONE${RESET}"
+echo -e "${BLUE}                                                                     ⠉ ${RESET} di Manuel Balbi - \e[1;37mv.$VERSIONE$BETA${RESET}"
 tput cup 9 0
 
 #   controllo presenza dipendenze
@@ -102,7 +104,7 @@ for bin in "${REQUISITI[@]}"; do
     fi
 done
 
-#   backup dei documenti presenti nella cartella Documenti
+# Backup dei documenti presenti nella cartella Documenti
 echo -n "🔄 Backup documenti contenuti nella cartella Documenti, "
 #   verifica presenza funzione custom/standard su rsync
 if rsync --help | grep -q "detect-renamed"; then
@@ -114,89 +116,37 @@ else
     echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Uso rsync --fuzzy come funzione standard" >> $LOGFILE
     EXTRA_FLAGS="--fuzzy"
 fi
-#   esecuzione rsync documenti presenti in cartella Documenti e in Documenti/bash
+
+# Esecuzione rsync documenti presenti in cartella Documenti e in Documenti/bash
 rsync --backup --update --archive $EXTRA_FLAGS --progress ~/Documenti/*.* ~/Documenti/Backup 2> >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') $line"; done >> $LOGFILE)
 rsync --backup --update --archive $EXTRA_FLAGS --progress ~/Documenti/bash/*.* ~/Documenti/Backup/bash 2> >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') $line"; done >> $LOGFILE)
 
-# 1.    --- copia delle immagini di Steam nella cartella Immagini ---
-# 1.a   configurazione dei percorsi di Steam, se esistente
-SOURCE_DIR="$HOME/.local/share/Steam/userdata/"
+# Definizione degli array contenenti i percorsi da copiare per utilizzo con Bash 4.0 e successivo
+declare -A mappe=(
+    ["$HOME/.local/share/Steam/userdata/"]="$HOME/Immagini/Steam/"
+    ["$HOME/.local/share/Steam/steamapps/common/StellarBlade/Screenshots/"]="$HOME/Immagini/Steam/"
+    ["$HOME/AppImages/Data/Images/Inference/"]="$HOME/Immagini/.AI 🤖/Inference/"
+)
 
-if [ -d "$SOURCE_DIR" ]; then
-    DEST_DIR="$HOME/Immagini/Steam/"
-    file_path=
+for src in "${!mappe[@]}"; do
+    echo -e "Copia in locale da ${ORANGE}$src${RESET} a ${YELLOW}${mappe[$src]}${RESET}..."
 
-    # 1.b   crea la cartella di destinazione se inesistente
-    mkdir -p "$DEST_DIR"
+    # Crea la directory di destinazione se non esiste
+    mkdir -p "${mappe[$src]}"
 
-    echo -e "Copia locale da: ${ORANGE}$SOURCE_DIR${RESET} a: ${YELLOW}$DEST_DIR${RESET}"
+    # Usa -print0 per gestire nomi file complessi e velocizzare il filtro
+    find "$src" -maxdepth 2 -type f \
+        \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) \
+        ! \( -iname 'T_*' -o -name '*desktop*' -o -name '*thumb*' -o -name '*library*' -o -name '*strapper*' -o -name '*setting*' \) \
+        -size +200k -print0 | while IFS= read -r -d '' file_path; do
 
-    # 1.c   Usa find per cercare ricorsivamente i file, -type f: cerca solo file
-    find "$SOURCE_DIR" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) ! \( -iname 'T_*' -o -name '*desktop*' -o -name '*thumb*' -o -name '*library*' -o -name '*strapper*' -o -name '*setting*' \) -size +200k | while read -r file_path; do
-
-        # 1.c.1 estrai solo il nome del file (es. "immagine_001.jpg") dal percorso completo
         filename=$(basename "$file_path")
+        dest_path="${mappe[$src]}$filename"
 
-        # 1.c.2 definisci il percorso completo del file di destinazione
-        dest_path="$DEST_DIR$filename"
-
-        # 1.c.3 copia il file con opzione --link in modo da preservare i metadati del file originale
-        # echo "Copia di $file_path in $dest_path"
-        cp --link --update=older "$file_path" "$dest_path" &> >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') $line"; done >> $LOGFILE)
+        # Copia/Link silenziando l'output standard ma loggando gli errori
+        cp --link --update=older "$file_path" "$dest_path" 2> >(while read -r line; do echo "$(date '+%Y-%m-%d %H:%M:%S') ERR: $line" >> "$LOGFILE"; done)
     done
-fi
-
-
-# 1.d   configurazione dei percorsi dedicati a StellarBlade, se esistente
-SOURCE_DIR="$HOME/.local/share/Steam/steamapps/common/StellarBlade/Screenshots/"
-
-if [ -d "$SOURCE_DIR" ]; then
-    DEST_DIR="$HOME/Immagini/Steam/"
-    file_path=
-
-    echo -e "Spostamento locale da: ${ORANGE}$SOURCE_DIR${RESET} a: ${YELLOW}$DEST_DIR${RESET}"
-
-    # 1.e   Usa find per cercare ricorsivamente i file, -type f: cerca solo file
-    find "$SOURCE_DIR" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) -size +200k | while read -r file_path; do
-
-        # 1.e.1 estrai solo il nome del file (es. "immagine_001.jpg") dal percorso completo
-        filename=$(basename "$file_path")
-
-        # 1.e.2 definisci il percorso completo del file di destinazione
-        dest_path="$DEST_DIR$filename"
-
-        # 1.e.3 muove il file con opzione --link in modo da preservare i metadati del file originale
-        # echo "Muovo il $file_path in $dest_path"
-        mv --update=older "$file_path" "$dest_path" 2> >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') $line"; done >> $LOGFILE)
-    done
-fi
-
-# 1.f   configurazione dei percorsi dedicati alla generazione per inferenza con Stability Matrix
-SOURCE_DIR="$HOME/AppImages/Data/Images/Inference/"
-
-if [ -d "$SOURCE_DIR" ]; then
-    DEST_DIR="$HOME/Immagini/.AI 🤖/Inference/"
-    file_path=
-
-    # 1.g   crea la cartella di destinazione se inesistente
-    mkdir -p "$DEST_DIR"
-
-    echo -e "Copia locale da: ${ORANGE}$SOURCE_DIR${RESET} a: ${YELLOW}$DEST_DIR${RESET}"
-
-    # 1.h   Usa find per cercare ricorsivamente i file, -type f: cerca solo file
-    find "$SOURCE_DIR" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) ! \( -iname 'T_*' -o -name '*desktop*' -o -name '*thumb*' -o -name '*library*' -o -name '*strapper*' -o -name '*setting*' \) -size +200k | while read -r file_path; do
-
-        # 1.h.1 estrai solo il nome del file (es. "immagine_001.jpg") dal percorso completo
-        filename=$(basename "$file_path")
-
-        # 1.h.2 definisci il percorso completo del file di destinazione
-        dest_path="$DEST_DIR$filename"
-
-        # 1.h.3 copia il file con opzione --link in modo da preservare i metadati del file originale
-        # echo "Copia di $file_path in $dest_path"
-        cp --link --update=older "$file_path" "$dest_path" &> >(while read line; do echo "$(date '+%Y-%m-%d %H:%M:%S') $line"; done >> $LOGFILE)
-    done
-fi
+done
 
 # 2.    --- configurazione rclone ---
 DR="N"
@@ -302,7 +252,7 @@ case $TSYNC in
         ;;
 esac
 
-echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Script rclone $VERSIONE terminato.\n" >> $LOGFILE
+echo -e "$(date '+%Y-%m-%d %H:%M:%S') - Script rclone $VERSIONE$BETA terminato.\n" >> $LOGFILE
 
 # copia del file di log al termine di tutte le attività
 start_spinner
