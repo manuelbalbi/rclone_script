@@ -12,7 +12,7 @@
 # $VERSIONE contiene la dichiarazione della revisione
 # $BETA indica se si tratta di una versione beta, nel caso di versione finale la variabile $BETA=""
 VERSIONE="2.1" #    VERSIONE    2.1
-BETA="-b2" #        BETA        b2
+BETA="-b2" #        BETA        b2-1
 
 # Configurazione file lettura e scrittura
 LOGFILE="log_rclone_$VERSIONE$BETA.log"
