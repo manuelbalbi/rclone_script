@@ -2,7 +2,10 @@
 
 # 1. Inclusioni specifiche anche nascoste
 + Immagini/.AI 🤖/**
++ Immagini/.instagram/**
++ Immagini/.chflags hidden path/**
 + Video/.Grok/**
++ Documenti/GitHub/**
 
 # 2. Esclusione generale dei file/cartelle nascoste
 - .*{/**,}
