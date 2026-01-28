@@ -13,8 +13,9 @@
 # $BETA indica se si tratta di una versione beta, nel caso di versione finale la variabile $BETA=""
 # $VERSION contiene la versione in formato data invertita per effettuare il controllo per l'autoaggiornamento. Il valore è indipendente da $VERSIONE e $BETA
 VERSIONE="2.2" #    VERSIONE    2.2
-BETA="-b1" #        BETA        1
-VERSION=20260128  # Versione locale per confronto aggiornamento su GitHub
+BETA="-b2" #        BETA        2
+# Versione per confronto aggiornamento su GitHub in formato AAAAMMGG
+VERSION=20260128
 
 # Configurazione per repository GitHub pubblico
 USER="manuelbalbi"
@@ -112,17 +113,23 @@ find "$LOGDIR" -type f -name "*log*" -mtime +"$TFINDFLUSH" -delete
 echo "Controllo versione in corso da ${UPDATE_URL}..."
 printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Verifica versione script da ${UPDATE_URL}..." >> "$LOGFILE"
 
-# Estrae la riga VERSION dal file remoto su GitHub
-REMOTE_VERSION=$(curl -sL "$UPDATE_URL" | grep "^VERSION=" | head -1 | cut -d'=' -f2)
+# Recupera la versione e puliscila da ogni carattere che non sia un numero
+REMOTE_VERSION=$(curl -sL "$UPDATE_URL" | grep "^VERSION=" | head -1 | tr -d -c '0-9')
 
-if [ -z "$REMOTE_VERSION" ]; then
+# Controllo di sicurezza: se non è un numero, imposta a 0 o esci
+if ! [[ "$REMOTE_VERSION" =~ ^[0-9]+$ ]]; then
+    echo "Errore: Impossibile leggere la versione remota (ricevuto: $REMOTE_VERSION)"
+    printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "ERRORE" "Impossibile leggere la versione da GitHub, restituito: $REMOTE_VERSION..." >> "$LOGFILE"
     ACTION="error"
-elif [ "$REMOTE_VERSION" -gt "$VERSION" ]; then # -gt greater than
-    ACTION="update"
-elif [ "$REMOTE_VERSION" -lt "$VERSION" ]; then # -lt less than
-    ACTION="dev_mode"
 else
-    ACTION="skip"
+    # Ora il confronto numerico è sicuro
+    if [ "$REMOTE_VERSION" -gt "$VERSION" ]; then
+        ACTION="update"
+    elif [ "$REMOTE_VERSION" -lt "$VERSION" ]; then
+        ACTION="dev_mode"
+    else
+        ACTION="skip"
+    fi
 fi
 
 case "$ACTION" in
