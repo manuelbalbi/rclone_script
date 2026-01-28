@@ -11,18 +11,28 @@
 # Dichiarazione versione script
 # $VERSIONE contiene la dichiarazione della revisione
 # $BETA indica se si tratta di una versione beta, nel caso di versione finale la variabile $BETA=""
-VERSIONE="2.1" #    VERSIONE    2.1
-BETA="" #           BETA
+# $VERSION contiene la versione in formato data invertita per effettuare il controllo per l'autoaggiornamento. Il valore è indipendente da $VERSIONE e $BETA
+VERSIONE="2.2" #    VERSIONE    2.2
+BETA="-b1" #        BETA        1
+VERSION=20260128  # Versione locale per confronto aggiornamento su GitHub
+
+# Configurazione per repository GitHub pubblico
+USER="manuelbalbi"
+REPO="rclone_script"
+FILE="rclone_script.sh"
+UPDATE_URL="https://raw.githubusercontent.com/${USER}/${REPO}/refs/heads/main/${FILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
+SCRIPT_PATH="$(readlink -f "$0")"
 
 # Configurazione file lettura e scrittura
 LOGDIR="$HOME/.config/rclone_script"
-LOGNAME="log_rclone_${VERSIONE}${BETA}.log"
+LOGNAME="$(date +%F)_log_rclone_${VERSIONE}${BETA}.log"
 LOGFILE="${LOGDIR}/${LOGNAME}"
 CONF_FILE_UP="rclone_script_upload.conf"
 CONF_FILE_DOWN="rclone_script_download.conf"
 CONFUP="${LOGDIR}/${CONF_FILE_UP}"
 CONFDW="${LOGDIR}/${CONF_FILE_DOWN}"
 VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync
+TFINDFLUSH="30" # tempo in giorni per -mtime su comando find per cancellazione file di log / pulizia backlog vecchio
 LOCKFILEDIR="$HOME/.cache/rclone/bisync/" # riferimento a https://rclone.org/bisync/#lock-file
 
 # Livello di informazioni registrate da rclone nel file di log
@@ -68,6 +78,24 @@ frame_duration=0.1
 
 # -------------------------------------------------------------------------------------------------
 # ---------------------------------------- INIZIO CONTROLLI ---------------------------------------
+
+printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "--- AVVIO SCRIPT rclone $VERSIONE$BETA -------------------------------------------------------------" >> "$LOGFILE"
+
+clear
+tput csr 9 $(($(tput lines) - 1))
+
+#   disegna le 9 righe di intestazione fissa (righe 0-8)
+tput cup 0 0
+echo -e "${GREEN}               ⠘⣿⡇                                               ⠻⠃          ⣼${RESET}"
+echo -e "${YELLOW}    ⣿⣤⡿⠛⠃ ⣴⡿⠛⠻⠏ ⣿⡇  ⣶⠿⠛⠿⣶  ⢸⣷⡾⠛⠻⣿⡄  ⣰⡿⠛⠻⣷     ⢀⣾⠛⠛⠿⠃ ⢠⣾⠟⠛⠿ ⢸⣧⣾⠟⠛ ⣿⡇ ⢸⣷⡾⠛⠻⣷  ⠛⣿⠛⠛  ⢠⣾⠟⠛⠻⣷${RESET}"
+echo -e "${ORANGE}    ⣿⡏   ⢠⣿     ⣿⡇ ⣼⡏   ⢸⣷ ⢸⣿   ⢸⡇ ⢠⣿⣀⣀⣀⣹⡇    ⠘⣿⣄    ⣿⠁    ⢸⣿    ⣿⡇ ⢸⣿   ⠘⣿  ⣿       ⢀⣼⠏${RESET}"
+echo -e "${RED}    ⣿⡇   ⢸⣿     ⣿⡇ ⢿⡇   ⢸⣿ ⢸⣿   ⢸⡇ ⠸⣿⠉⠉⠉⠉⠁      ⠉⠛⣿⡄ ⣿     ⢸⣿    ⣿⡇ ⢸⣿   ⢀⣿  ⣿     ⣠⣾⠟⠁ ${RESET}"
+echo -e "${PURPLE}    ⣿⡇    ⢿⣦⣀⣀⣀ ⣿⡇ ⠈⣿⣄⣀⣀⣿⠃ ⢸⣿   ⢸⡇  ⢿⣦⣀⣀⣀⡄    ⢠⣀ ⣀⣼⠇ ⠻⣷⣀⣀⣀ ⢸⣿    ⣿⡇ ⢸⣿⣄⣀⣀⣾⠏  ⣿⣄⢀ ⣠⣾⣿⣁⣀⣀⡄${RESET}"
+echo -e "${BLUE}    ⠉⠁     ⠈⠉⠉⠁ ⠉⠁   ⠉⠉⠉   ⠈⠉   ⠈⠁   ⠈⠉⠉⠉      ⠉⠉⠉⠁    ⠉⠉⠉ ⠈⠉    ⠉⠁ ⢸⣿ ⠉⠉⠁    ⠉⠉ ⠻⠿⠿⠿⠿⠿⠃${RESET}"
+echo -e "${BLUE}                                                                    ⢸⣿${RESET}"
+echo -e "${BLUE}                                                                     ⠉ ${RESET} di Manuel Balbi - \e[1;37mv.$VERSIONE$BETA${RESET}"
+tput cup 9 0
+
 # Controllo versione bash
 if [ -z "$BASH_VERSION" ]; then
     echo "Questo script richiede Bash."
@@ -76,6 +104,48 @@ fi
 
 # Creo la cartella per il log se non già esistente (uso le virgolette per sicurezza)
 mkdir -p "$LOGDIR"
+
+# Cerco e cancello file di log più vecchi di $TFINDFLUSH
+find "$LOGDIR" -type f -name "*log*" -mtime +"$TFINDFLUSH" -delete
+
+# --- LOGICA DI AGGIORNAMENTO ---
+echo "Controllo versione in corso da ${UPDATE_URL}..."
+printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Verifica versione script da ${UPDATE_URL}..." >> "$LOGFILE"
+
+# Estrae la riga VERSION dal file remoto su GitHub
+REMOTE_VERSION=$(curl -sL "$UPDATE_URL" | grep "^VERSION=" | head -1 | cut -d'=' -f2)
+
+if [ -z "$REMOTE_VERSION" ]; then
+    ACTION="error"
+elif [ "$REMOTE_VERSION" -gt "$VERSION" ]; then # -gt greater than
+    ACTION="update"
+elif [ "$REMOTE_VERSION" -lt "$VERSION" ]; then # -lt less than
+    ACTION="dev_mode"
+else
+    ACTION="skip"
+fi
+
+case "$ACTION" in
+    "update")
+        echo "Versione $REMOTE_VERSION disponibile. Aggiornamento in corso..."
+        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Disponibile versione $REMOTE_VERSION, aggiorno..." >> "$LOGFILE"
+        curl -sL "$UPDATE_URL" -o "${SCRIPT_PATH}.tmp" && mv "${SCRIPT_PATH}.tmp" "$SCRIPT_PATH"
+        chmod +x "$SCRIPT_PATH"
+        exec "$SCRIPT_PATH" "$@" # esegue lo script sostituendo il processo in esecuzione con il medesimo PID e uccidendo l'attuale
+        ;;
+    "dev_mode")
+        echo "Stai usando una versione locale ($VERSION) più recente di GitHub ($REMOTE_VERSION)."
+        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Versione locale ($VERSION) più recente di GitHub ($REMOTE_VERSION)." >> "$LOGFILE"
+        ;;
+    "error")
+        echo "Errore: Impossibile determinare la versione da GitHub."
+        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Errore nel determinare la versione da GitHub." >> "$LOGFILE"
+        ;;
+    "skip"|*)
+        echo "Script già aggiornato (v$VERSION)."
+        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Versione locale ($VERSION), versione GitHub ($REMOTE_VERSION)." >> "$LOGFILE"
+        ;;
+esac
 
 # -------------------------------------------------------------------------------------------------
 # Creazione file di configurazione rclone (Upload)
@@ -195,23 +265,6 @@ display_message() {
 # -------------------------------------- INIZIO CORPO SCRIPT --------------------------------------
 # -------------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------------
-
-printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "--- AVVIO SCRIPT rclone $VERSIONE$BETA -------------------------------------------------------------" >> "$LOGFILE"
-
-clear
-tput csr 9 $(($(tput lines) - 1))
-
-#   disegna le 9 righe di intestazione fissa (righe 0-8)
-tput cup 0 0
-echo -e "${GREEN}               ⠘⣿⡇                                               ⠻⠃          ⣼${RESET}"
-echo -e "${YELLOW}    ⣿⣤⡿⠛⠃ ⣴⡿⠛⠻⠏ ⣿⡇  ⣶⠿⠛⠿⣶  ⢸⣷⡾⠛⠻⣿⡄  ⣰⡿⠛⠻⣷     ⢀⣾⠛⠛⠿⠃ ⢠⣾⠟⠛⠿ ⢸⣧⣾⠟⠛ ⣿⡇ ⢸⣷⡾⠛⠻⣷  ⠛⣿⠛⠛  ⢠⣾⠟⠛⠻⣷${RESET}"
-echo -e "${ORANGE}    ⣿⡏   ⢠⣿     ⣿⡇ ⣼⡏   ⢸⣷ ⢸⣿   ⢸⡇ ⢠⣿⣀⣀⣀⣹⡇    ⠘⣿⣄    ⣿⠁    ⢸⣿    ⣿⡇ ⢸⣿   ⠘⣿  ⣿       ⢀⣼⠏${RESET}"
-echo -e "${RED}    ⣿⡇   ⢸⣿     ⣿⡇ ⢿⡇   ⢸⣿ ⢸⣿   ⢸⡇ ⠸⣿⠉⠉⠉⠉⠁      ⠉⠛⣿⡄ ⣿     ⢸⣿    ⣿⡇ ⢸⣿   ⢀⣿  ⣿     ⣠⣾⠟⠁ ${RESET}"
-echo -e "${PURPLE}    ⣿⡇    ⢿⣦⣀⣀⣀ ⣿⡇ ⠈⣿⣄⣀⣀⣿⠃ ⢸⣿   ⢸⡇  ⢿⣦⣀⣀⣀⡄    ⢠⣀ ⣀⣼⠇ ⠻⣷⣀⣀⣀ ⢸⣿    ⣿⡇ ⢸⣿⣄⣀⣀⣾⠏  ⣿⣄⢀ ⣠⣾⣿⣁⣀⣀⡄${RESET}"
-echo -e "${BLUE}    ⠉⠁     ⠈⠉⠉⠁ ⠉⠁   ⠉⠉⠉   ⠈⠉   ⠈⠁   ⠈⠉⠉⠉      ⠉⠉⠉⠁    ⠉⠉⠉ ⠈⠉    ⠉⠁ ⢸⣿ ⠉⠉⠁    ⠉⠉ ⠻⠿⠿⠿⠿⠿⠃${RESET}"
-echo -e "${BLUE}                                                                    ⢸⣿${RESET}"
-echo -e "${BLUE}                                                                     ⠉ ${RESET} di Manuel Balbi - \e[1;37mv.$VERSIONE$BETA${RESET}"
-tput cup 9 0
 
 # ---------------------------------------- BACKUP DOCUMENTI ---------------------------------------
 echo -n "🔄 Backup documenti contenuti nella cartella Documenti, "
@@ -354,7 +407,7 @@ case $TSYNC in
         # 2.b.4 effettua la bisincronizzazione da OneDrive, quindi avvia la sincronizzazione con Google il tutto con i filtri di $CONFUP
         echo -e "Attivazione funzione ${ORANGE}Bisync${RESET}."
         printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync su OneDrive mediante rclone." >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/ 2>&1 | tee --append "$LOGFILE"
+        systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --force --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/ 2>&1 | tee --append "$LOGFILE"
         echo -e "$(date '+%Y-%m-%d %H:%M:%S') - " >> $LOGFILE
         printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO!" "Attivazione funzione sync su Google Drive mediante rclone. In caso di errore sulla sincronizzazione prcedente i dati potrebbe andare persi!" >> "$LOGFILE"
         systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ Google:/ 2>&1 | tee --append "$LOGFILE"
