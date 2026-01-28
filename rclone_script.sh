@@ -14,7 +14,8 @@
 # $VERSION contiene la versione in formato data invertita per effettuare il controllo per l'autoaggiornamento. Il valore è indipendente da $VERSIONE e $BETA
 VERSIONE="2.2" #    VERSIONE    2.2
 BETA="-b1" #        BETA        1
-VERSION=20260128  # Versione locale per confronto aggiornamento su GitHub
+# Versione per confronto aggiornamento su GitHub
+VERSION=20260128
 
 # Configurazione per repository GitHub pubblico
 USER="manuelbalbi"
