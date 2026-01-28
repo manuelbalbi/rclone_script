@@ -1,21 +1,15 @@
 #!/bin/bash
-# -------------------------------------------------------------------------------------------------
+
 # -------------------------------------------------------------------------------------------------
 # --------------- SCRIPT DI SINCRONIZZAZIONE CON I SERVIZI CLOUD UTILIZZANDO rclone ---------------
 # ---------------- ATTIVAZIONE DI BACKUP E COPIA DI FILE SELEZIONATI CON rsync / cp ---------------
 # -------------------------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------------------------
 
-# -------------------------------------------------------------------------------------------------
 # --------------------------------- INIZIO DICHIARAZIONE VARIABILI --------------------------------
-# Dichiarazione versione script
-# $VERSIONE contiene la dichiarazione della revisione
-# $BETA indica se si tratta di una versione beta, nel caso di versione finale la variabile $BETA=""
-# $VERSION contiene la versione in formato data invertita per effettuare il controllo per l'autoaggiornamento. Il valore è indipendente da $VERSIONE e $BETA
-VERSIONE="2.2" #    VERSIONE    2.2
-BETA="-b2" #        BETA        2
-# Versione per confronto aggiornamento su GitHub in formato AAAAMMGG
-VERSION=20260128
+
+# Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
+VERSIONE="2.2"
+BUILD=20260128
 
 # Configurazione per repository GitHub pubblico
 USER="manuelbalbi"
@@ -24,9 +18,9 @@ FILE="rclone_script.sh"
 UPDATE_URL="https://raw.githubusercontent.com/${USER}/${REPO}/refs/heads/main/${FILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
 SCRIPT_PATH="$(readlink -f "$0")"
 
-# Configurazione file lettura e scrittura
+# Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
 LOGDIR="$HOME/.config/rclone_script"
-LOGNAME="$(date +%F)_log_rclone_${VERSIONE}${BETA}.log"
+LOGNAME="$(date +%F)_log_rclone_${BUILD}.log"
 LOGFILE="${LOGDIR}/${LOGNAME}"
 CONF_FILE_UP="rclone_script_upload.conf"
 CONF_FILE_DOWN="rclone_script_download.conf"
@@ -78,9 +72,9 @@ braille_spinner=("${eight_dot_cell_pattern[@]}")
 frame_duration=0.1
 
 # -------------------------------------------------------------------------------------------------
-# ---------------------------------------- INIZIO CONTROLLI ---------------------------------------
+# ------------------------------------------ AVVIO SCRIPT -----------------------------------------
 
-printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "--- AVVIO SCRIPT rclone $VERSIONE$BETA -------------------------------------------------------------" >> "$LOGFILE"
+printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "--- AVVIO rclone_script v. ${VERSIONE} build ${BUILD} -------------------------------------------------------------" >> "$LOGFILE"
 
 clear
 tput csr 9 $(($(tput lines) - 1))
@@ -94,10 +88,11 @@ echo -e "${RED}    ⣿⡇   ⢸⣿     ⣿⡇ ⢿⡇   ⢸⣿ ⢸⣿   ⢸⡇ �
 echo -e "${PURPLE}    ⣿⡇    ⢿⣦⣀⣀⣀ ⣿⡇ ⠈⣿⣄⣀⣀⣿⠃ ⢸⣿   ⢸⡇  ⢿⣦⣀⣀⣀⡄    ⢠⣀ ⣀⣼⠇ ⠻⣷⣀⣀⣀ ⢸⣿    ⣿⡇ ⢸⣿⣄⣀⣀⣾⠏  ⣿⣄⢀ ⣠⣾⣿⣁⣀⣀⡄${RESET}"
 echo -e "${BLUE}    ⠉⠁     ⠈⠉⠉⠁ ⠉⠁   ⠉⠉⠉   ⠈⠉   ⠈⠁   ⠈⠉⠉⠉      ⠉⠉⠉⠁    ⠉⠉⠉ ⠈⠉    ⠉⠁ ⢸⣿ ⠉⠉⠁    ⠉⠉ ⠻⠿⠿⠿⠿⠿⠃${RESET}"
 echo -e "${BLUE}                                                                    ⢸⣿${RESET}"
-echo -e "${BLUE}                                                                     ⠉ ${RESET} di Manuel Balbi - \e[1;37mv.$VERSIONE$BETA${RESET}"
+echo -e "${BLUE}                                                                     ⠉ ${RESET} di Manuel Balbi - \e[1;37mv.${VERSIONE} build ${BUILD}${RESET}"
 tput cup 9 0
 
-# Controllo versione bash
+# ---------------------------------------- INIZIO CONTROLLI ---------------------------------------
+# Controllo bash
 if [ -z "$BASH_VERSION" ]; then
     echo "Questo script richiede Bash."
     exit 1
@@ -114,18 +109,18 @@ echo "Controllo versione in corso da ${UPDATE_URL}..."
 printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Verifica versione script da ${UPDATE_URL}..." >> "$LOGFILE"
 
 # Recupera la versione e puliscila da ogni carattere che non sia un numero
-REMOTE_VERSION=$(curl -sL "$UPDATE_URL" | grep "^VERSION=" | head -1 | tr -d -c '0-9')
+REMOTE_BUILD=$(curl -sL "$UPDATE_URL" | grep "^BUILD=" | head -1 | tr -d -c '0-9')
 
 # Controllo di sicurezza: se non è un numero, imposta a 0 o esci
-if ! [[ "$REMOTE_VERSION" =~ ^[0-9]+$ ]]; then
-    echo "Errore: Impossibile leggere la versione remota (ricevuto: $REMOTE_VERSION)"
-    printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "ERRORE" "Impossibile leggere la versione da GitHub, restituito: $REMOTE_VERSION..." >> "$LOGFILE"
+if ! [[ "$REMOTE_BUILD" =~ ^[0-9]+$ ]]; then
+    echo "Errore: Impossibile leggere la versione remota (ricevuto: $REMOTE_BUILD)"
+    printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "ERRORE" "Impossibile leggere la versione da GitHub, restituito: $REMOTE_BUILD..." >> "$LOGFILE"
     ACTION="error"
 else
     # Ora il confronto numerico è sicuro
-    if [ "$REMOTE_VERSION" -gt "$VERSION" ]; then
+    if [ "$REMOTE_BUILD" -gt "${BUILD}" ]; then
         ACTION="update"
-    elif [ "$REMOTE_VERSION" -lt "$VERSION" ]; then
+    elif [ "$REMOTE_BUILD" -lt "${BUILD}" ]; then
         ACTION="dev_mode"
     else
         ACTION="skip"
@@ -134,23 +129,23 @@ fi
 
 case "$ACTION" in
     "update")
-        echo "Versione $REMOTE_VERSION disponibile. Aggiornamento in corso..."
-        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Disponibile versione $REMOTE_VERSION, aggiorno..." >> "$LOGFILE"
+        echo "Versione $REMOTE_BUILD disponibile. Aggiornamento in corso..."
+        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Disponibile versione $REMOTE_BUILD, aggiorno..." >> "$LOGFILE"
         curl -sL "$UPDATE_URL" -o "${SCRIPT_PATH}.tmp" && mv "${SCRIPT_PATH}.tmp" "$SCRIPT_PATH"
         chmod +x "$SCRIPT_PATH"
         exec "$SCRIPT_PATH" "$@" # esegue lo script sostituendo il processo in esecuzione con il medesimo PID e uccidendo l'attuale
         ;;
     "dev_mode")
-        echo "Stai usando una versione locale ($VERSION) più recente di GitHub ($REMOTE_VERSION)."
-        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Versione locale ($VERSION) più recente di GitHub ($REMOTE_VERSION)." >> "$LOGFILE"
+        echo "Stai usando una versione locale (${BUILD}) più recente di GitHub ($REMOTE_BUILD)."
+        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Versione locale (${BUILD}) più recente di GitHub ($REMOTE_BUILD)." >> "$LOGFILE"
         ;;
     "error")
         echo "Errore: Impossibile determinare la versione da GitHub."
         printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Errore nel determinare la versione da GitHub." >> "$LOGFILE"
         ;;
     "skip"|*)
-        echo "Script già aggiornato (v$VERSION)."
-        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Versione locale ($VERSION), versione GitHub ($REMOTE_VERSION)." >> "$LOGFILE"
+        echo "Script già aggiornato (build ${BUILD})."
+        printf "\n%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Versione locale (${BUILD}), versione GitHub ($REMOTE_BUILD)." >> "$LOGFILE"
         ;;
 esac
 
@@ -159,14 +154,10 @@ esac
 if [ ! -f "$CONFUP" ]; then
     echo -e "${ORANGE}CREAZIONE:${RESET} $CONF_FILE_UP"
     cat <<EOF > "$CONFUP"
-# Configurazione predefinita per rclone_script $VERSIONE$BETA parametro '--filter-from' file $CONF_FILE_UP
+# Configurazione predefinita per rclone_script definita da v. ${VERSIONE} build ${BUILD} parametro '--filter-from' file $CONF_FILE_UP
 # Configura aggiungendo o cancellando righe con riferimento a https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file
 
-# 1. Inclusioni specifiche nascoste
-+ Immagini/.AI 🤖/**
-+ Immagini/.instagram/**
-+ Immagini/.chflags hidden path/**
-+ Video/.Grok/**
+# 1. Inclusioni specifiche
 + Documenti/GitHub/**
 
 # 2. Esclusione generale dei file/cartelle nascoste
@@ -195,14 +186,10 @@ fi
 if [ ! -f "$CONFDW" ]; then
     echo -e "${ORANGE}CREAZIONE:${RESET} $CONF_FILE_DOWN"
     cat <<EOF > "$CONFDW"
-# Configurazione predefinita per rclone_script $VERSIONE$BETA parametro '--filter-from' file $CONF_FILE_DOWN
+# Configurazione predefinita per rclone_script definita da v. ${VERSIONE} build ${BUILD} parametro '--filter-from' file $CONF_FILE_DOWN
 # Configura aggiungendo o cancellando righe con riferimento a https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file
 
 # 1. Inclusioni specifiche anche nascoste
-+ Immagini/.AI 🤖/**
-+ Immagini/.instagram/**
-+ Immagini/.chflags hidden path/**
-+ Video/.Grok/**
 + Documenti/GitHub/**
 
 # 2. Esclusione generale dei file/cartelle nascoste
@@ -268,14 +255,12 @@ display_message() {
 }
 
 # -------------------------------------------------------------------------------------------------
-# -------------------------------------------------------------------------------------------------
 # -------------------------------------- INIZIO CORPO SCRIPT --------------------------------------
-# -------------------------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------------------------
 
 # ---------------------------------------- BACKUP DOCUMENTI ---------------------------------------
 echo -n "🔄 Backup documenti contenuti nella cartella Documenti, "
-#   verifica presenza funzione custom/standard su rsync
+# Verifica presenza funzione custom/standard su rsync e relativa configurazione
 if rsync --help | grep -q "detect-renamed"; then
     echo -e "uso ${ORANGE}--detect-renamed${RESET} come funzione custom."
     printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Uso --detect-renamed come funzione custom." >> "$LOGFILE"
@@ -305,7 +290,6 @@ done >> "$LOGFILE")
 declare -A mappe=(
     ["$HOME/.local/share/Steam/userdata/"]="$HOME/Immagini/Steam/"
     ["$HOME/.local/share/Steam/steamapps/common/StellarBlade/Screenshots/"]="$HOME/Immagini/Steam/"
-    ["$HOME/AppImages/Data/Images/Inference/"]="$HOME/Immagini/.AI 🤖/Inference/"
 )
 
 for src in "${!mappe[@]}"; do
@@ -329,7 +313,6 @@ for src in "${!mappe[@]}"; do
 done
 
 # ----------------------------------- INIZIALIZZAZIONE DRYU-RUN -----------------------------------
-
 #   prompt comando dry-run
 echo -e "Copia locale completata.\n🔁 Avvio sync con rclone."
 #   opera la scelta con ugum/gum/select
@@ -351,6 +334,7 @@ fi
 # Controllo sicurezza: se l'utente preme Esc/Ctrl+C con gum
 if [ -z "$DR" ]; then
     trap "tput csr 0 $(($(tput lines) - 1)); clear; echo 'Operazione annullata.'; exit" EXIT
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Operazione annullata in selezione dry-run, esco dallo script." >> "$LOGFILE"
     exit 1
 fi
 
@@ -385,6 +369,7 @@ fi
 # Controllo sicurezza: se l'utente preme Esc/Ctrl+C con gum
 if [ -z "$TSYNC" ]; then
     trap "tput csr 0 $(($(tput lines) - 1)); clear; echo 'Operazione annullata.'; exit" EXIT
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Operazione annullata in selezione tipo sincronizzazione, esco dallo script." >> "$LOGFILE"
     exit 1
 fi
 
@@ -438,13 +423,13 @@ case $TSYNC in
         ;;
 esac
 
-printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Script rclone $VERSIONE$BETA terminato." >> "$LOGFILE"
+printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Script rclone v. ${VERSIONE} build ${BUILD} terminato." >> "$LOGFILE"
 
 # copia del file di log al termine di tutte le attività
-start_spinner
-systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copyto $DRYRUN --update --metadata "$LOGFILE" OneDrive:/Bazzite/Documenti/$LOGFILE
-systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copyto $DRYRUN --update --metadata "$LOGFILE" Google:/Documenti/$LOGFILE
-stop_spinner
+# start_spinner
+# systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copyto $DRYRUN --update --metadata "$LOGFILE" OneDrive:/Bazzite/Documenti/$LOGFILE
+# systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copyto $DRYRUN --update --metadata "$LOGFILE" Google:/Documenti/$LOGFILE
+# stop_spinner
 
 # Controlla se lo script è il processo leader della sessione (SID == PID)
 if [ "$(ps -o sid= -p $$)" -eq "$$" ]; then
