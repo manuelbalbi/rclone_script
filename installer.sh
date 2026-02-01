@@ -7,6 +7,9 @@ source "$(dirname "$0")/vars.sh"
 # Create config and install directory
 mkdir -p "$INSTALLDIR"
 
+rsync --archive --update --backup --progress --suffix=_$(date +%Y%m%d) "${INSTALLDIR}/${CONF_DIR}/" "${INSTALLDIR}/${CONF_DIR}_bak"
+
+
 # Delete logs older than $TFINDFLUSH
 find "$INSTALLDIR" -type f -name "*log*" -mtime +"$TFINDFLUSH" -delete
 
@@ -25,6 +28,10 @@ mv -f "$SOURCE_DIR/" "$INSTALLDIR/"
 rm -rdf "$TEMP_FILE" "$TEMP_EXTRACT"
 
 echo "Tutti i file sono stati elaborati correttamente."
+
+chmod +x rclone_script.sh
+sudo ln -s "$INSTALLDIR/rclone_script.sh" /usr/local/bin/rclone-script
+chmod +x rclone_daemon.sh
 
 # -------------------------------------------------------------------------------------------------
 # Create missing config files
