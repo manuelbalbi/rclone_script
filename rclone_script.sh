@@ -8,68 +8,12 @@
 # --------------------------------- INIZIO DICHIARAZIONE VARIABILI --------------------------------
 
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
-VERSIONE="2.2"
-BUILD=20260128
+VERSIONE="2.3"
+BUILD=20260130
 
-# Configurazione per repository GitHub pubblico
-USER="manuelbalbi"
-REPO="rclone_script"
-FILE="rclone_script.sh"
-UPDATE_URL="https://raw.githubusercontent.com/${USER}/${REPO}/refs/heads/main/${FILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
-SCRIPT_PATH="$(readlink -f "$0")"
-
-# Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
-LOGDIR="$HOME/.config/rclone_script"
-LOGNAME="$(date +%F)_log_rclone_${BUILD}.log"
-LOGFILE="${LOGDIR}/${LOGNAME}"
-CONF_FILE_UP="rclone_script_upload.conf"
-CONF_FILE_DOWN="rclone_script_download.conf"
-CONFUP="${LOGDIR}/${CONF_FILE_UP}"
-CONFDW="${LOGDIR}/${CONF_FILE_DOWN}"
-VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync
-TFINDFLUSH="30" # tempo in giorni per -mtime su comando find per cancellazione file di log / pulizia backlog vecchio
-LOCKFILEDIR="$HOME/.cache/rclone/bisync/" # riferimento a https://rclone.org/bisync/#lock-file
-
-# Livello di informazioni registrate da rclone nel file di log
-# Seleziona il livello attivando/disattivando il commento
-LOGLVL="INFO"
-#LOGLVL="DEBUG"
-# Configurazioni base dello script
-DR="Attivare dry-run"
-DRYRUN="--dry-run"
-TSYNC=""
-
-# Definizione valori colori
-GREEN="\e[38;2;97;187;70m"
-YELLOW="\e[38;2;245;211;0m"
-ORANGE="\e[38;2;247;148;29m"
-RED="\e[38;2;226;31;38m"
-PURPLE="\e[38;2;151;57;153m"
-BLUE="\e[38;2;0;156;222m"
-# Formattazione testo
-BOLD="\e[1m"
-ITALIC="\e[3m"
-RESET_BOLD="\e[22m"
-RESET_ITALIC="\e[23m"
-# Reset formattazione
-RESET="\e[0m"
-
-
-# Configurazione estetica per gum/ugum mediante variabili d'ambiente
-export GUM_CHOOSE_CURSOR=" "
-export GUM_CHOOSE_CURSOR_FOREGROUND="#FF9F1C"
-export GUM_CHOOSE_SELECTED_FOREGROUND="#FF9F1C"
-
-# Configurazione spinner
-# Define an array of Braille patterns for a spinner
-six_dot_cell_pattern=("⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇")
-eight_dot_cell_pattern=("⣾" "⣷" "⣯" "⣟" "⡿" "⢿" "⣻" "⣽")
-
-# Set the pattern
-braille_spinner=("${eight_dot_cell_pattern[@]}")
-
-# Set the duration for each spinner frame (in seconds)
-frame_duration=0.1
+# Importa le variabili
+# Se vars.sh è nella stessa cartella dello script:
+source "$(dirname "$0")/vars.sh"
 
 # -------------------------------------------------------------------------------------------------
 # ------------------------------------------ AVVIO SCRIPT -----------------------------------------
@@ -271,18 +215,31 @@ else
     EXTRA_FLAGS="--fuzzy"
 fi
 
-# Esecuzione backup con rsync documenti presenti in cartella Documenti e in Documenti/bash
-# Documenti
-rsync --backup --update --archive $EXTRA_FLAGS --progress ~/Documenti/*.* ~/Documenti/Backup 2> >(while read -r line; do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "$line"
-done >> "$LOGFILE")
-# Documenti/bash
-rsync --backup --update --archive $EXTRA_FLAGS --progress ~/Documenti/bash/*.* ~/Documenti/Backup/bash 2> >(while read -r line; do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "$line"
-done >> "$LOGFILE")
+# BUG!!! TROVARE SOLUZIONE PER IL BACKUP OPPURE ELIMINARE LA SEZIONE
+# Esecuzione backup con rsync documenti dichiarati nell'array
+#declare -A backuploop=(
+#    ["$HOME/Documenti/"]="$HOME/Documenti/Backup"
+#    ["$HOME/Documenti/bash/*"]="$HOME/Documenti/Backup/bash"
+#)
+
+#for src in "${!backuploop[@]}"; do
+#    dest="${backuploop[$src]}"
+
+    # Nota: rsync gestisce meglio le cartelle che le wildcard dirette
+#    echo -e "Backup locale da ${ORANGE}$src${RESET} a ${PURPLE}$dest${RESET}..."
+
+#    mkdir -p "$dest"
+
+    # Backup: raggruppa le opzioni e usa le variabili corrette
+    # Nota: ho rimosso *.* e usato la cartella sorgente direttamente
+#    rsync --backup --update --dirs --archive $EXTRA_FLAGS --progress "$src" "$dest" 2> >(while read -r line; do
+#        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "$line"
+#      done >> "$LOGFILE")
+# done
+
 # Sposta gli screenshot creati in COSMIC nella cartella desiderata
 mv --verbose $HOME/Immagini/Screenshot* $HOME/Immagini/Schermate 2> >(while read -r line; do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "$line"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "$line"
 done >> "$LOGFILE")
 
 # ---------------------------------- COPIA DOCUMENTI SELEZIONATI ----------------------------------
@@ -406,7 +363,57 @@ case $TSYNC in
         ;;
     "Resync")
         # 2.b.5 effettua la bisincronizzazione da OneDrive, quindi avvia la sincronizzazione con Google il tutto con i filtri di $CONFUP con funzione RESYNC - da utilizzare alla prima risincronizzazione
-        echo -e "Attivazione funzione ${ORANGE}Bisync con resync${RESET}."
+
+# Creazione del file service
+if [ ! -f "$CONFSERVICE" ]; then
+    echo -e "${ORANGE}CREAZIONE:${RESET} $CONFSERVICE"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "Creazione file ${CONFSERVICE}" >> "$LOGFILE"
+
+    cat <<EOF > "$CONFSERVICE"
+[Unit]
+Description=Rclone Bisync Service
+
+[Service]
+Type=oneshot
+# La riga successiva esegue OneDrive
+ExecStart=/usr/bin/rclone bisync --force --metadata --log-level "$LOGLVL" --resilient --recover --max-lock 2m --conflict-resolve newer --max-age "$VITA" --exclude "$LOGFILE" --filter-from "$CONFUP" "$HOME/" OneDrive:/Bazzite/
+# La riga successiva esegue Google (eseguita solo se la prima termina con successo)
+ExecStart=/usr/bin/rclone bisync --force --metadata --log-level "$LOGLVL" --resilient --recover --max-lock 2m --conflict-resolve newer --max-age "$VITA" --exclude "$LOGFILE" --filter-from "$CONFUP" "$HOME/" Google:/
+EOF
+fi
+
+# Creazione del file timer
+if [ ! -f "$CONFTIMER" ]; then
+    echo -e "${ORANGE}CREAZIONE:${RESET} $CONFTIMER"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "Creazione file ${CONFTIMER}" >> "$LOGFILE"
+
+    cat <<EOF > "$CONFTIMER"
+[Unit]
+Description=Timer per rclone bisync ogni 15 minuti
+
+[Timer]
+# Esegue il backup 15 minuti dopo l'ultimo completamento
+OnUnitActiveSec=15min
+# Esegue il backup 1 minuto dopo il boot (opzionale ma consigliato)
+OnBootSec=1min
+
+[Install]
+WantedBy=timers.target
+EOF
+fi
+
+        systemctl --user daemon-reload
+        systemctl --user enable --now rclone-bisync.timer
+
+        if systemctl --user is-active --quiet rclone-bisync.timer; then
+            echo -e "Timer avviato correttamente."
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Timer avviato correttamente." >> "$LOGFILE"
+        else
+            echo -e "Timer non avviato, verificare lo stato del demone."
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "Timer non avviato. Verificare con: systemctl --user is-active rclone-bisync.timer" >> "$LOGFILE"
+        fi
+
+        echo -e "Attivazione funzione ${ORANGE}Bisync con resync${RESET}. Viene attivato anche un servizio in background."
         echo -e "$(date '+%Y-%m-%d %H:%M:%S') - " >> $LOGFILE
         printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync con resync su OneDrive mediante rclone. Il risultato finale sarà la somma dei file locali e remoti." >> "$LOGFILE"
         systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resync --resync-mode newer --max-age $VITA --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/ 2>&1 | tee --append "$LOGFILE"

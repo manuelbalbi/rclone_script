@@ -1,0 +1,118 @@
+2026-01-24 22:01:36 - AVVIO SCRIPT rclone 2.1-b2
+2026-01-24 22:01:36 - Uso rsync --fuzzy come funzione standard
+2026-01-24 22:01:38 - Disattivata funzione --dry-run per comando rclone, il servizio rclone avrà efficacia.
+2026-01-24 22:01:41 - Attivazione funzione copy di rclone su OneDrive.
+2026/01/24 22:01:44 INFO  : Immagini: Set directory modification time (using SetModTime)
+2026/01/24 22:01:46 INFO  : Immagini/Schermate: Set directory modification time (using SetModTime)
+2026/01/24 22:01:48 INFO  : Documenti/GitHub/rclone_script: Set directory modification time (using SetModTime)
+2026/01/24 22:01:49 INFO  : Documenti/bash/attivare USB per iPhone.sh: Copied (new)
+2026/01/24 22:01:49 INFO  : Documenti/bash/log_rclone_2.0-b1.log: Copied (new)
+2026/01/24 22:01:49 INFO  : Documenti/bash/log_script_rclone_1.5.6.log: Copied (new)
+2026/01/24 22:01:49 INFO  : Documenti/bash/bees.sh: Copied (new)
+2026/01/24 22:01:50 INFO  : Documenti/bash/log_script_rclone_1.6.log: Copied (new)
+2026/01/24 22:01:56 INFO  : Immagini/Schermate/Screenshot_2026-01-24_22-00-52.png: Copied (new)
+2026/01/24 22:01:57 INFO  : Immagini/Schermate/Screenshot_2026-01-24_21-59-39.png: Copied (new)
+2026/01/24 22:02:01 INFO  : Documenti/bash: Updated directory metadata
+2026/01/24 22:02:01 INFO  : Immagini/Schermate: Updated directory metadata
+2026/01/24 22:02:02 INFO  : Documenti: Updated directory metadata
+2026/01/24 22:02:02 INFO  : Immagini: Updated directory metadata
+2026/01/24 22:02:02 INFO  : 
+Transferred:   	   10.684 MiB / 10.684 MiB, 100%, 1.068 MiB/s, ETA 0s
+Checks:              2368 / 2368, 100%, Listed 5212
+Transferred:            7 / 7, 100%
+Elapsed time:        18.9s
+
+2026-01-24 22:02:02 - Attivazione funzione copy di rclone su Google Drive.
+2026/01/24 22:02:03 INFO  : Immagini: Set directory modification time (using SetModTime)
+2026/01/24 22:02:03 INFO  : Immagini/Schermate: Set directory modification time (using SetModTime)
+2026/01/24 22:02:04 INFO  : Documenti/GitHub/rclone_script: Set directory modification time (using SetModTime)
+2026/01/24 22:02:06 INFO  : Documenti/bash/log_script_rclone_1.5.6.log: Copied (new)
+2026/01/24 22:02:06 INFO  : Documenti/bash/log_rclone_2.0-b1.log: Copied (new)
+2026/01/24 22:02:06 INFO  : Documenti/bash/bees.sh: Copied (new)
+2026/01/24 22:02:06 INFO  : Documenti/bash/attivare USB per iPhone.sh: Copied (new)
+2026/01/24 22:02:07 INFO  : Documenti/bash/log_script_rclone_1.6.log: Copied (new)
+2026/01/24 22:02:09 INFO  : Immagini/Schermate/Screenshot_2026-01-24_22-00-52.png: Copied (new)
+2026/01/24 22:02:12 INFO  : Immagini/Schermate/Screenshot_2026-01-24_21-59-39.png: Copied (new)
+2026/01/24 22:02:17 INFO  : Immagini/Schermate: Updated directory metadata
+2026/01/24 22:02:18 INFO  : Documenti/bash: Updated directory metadata
+2026/01/24 22:02:18 INFO  : Immagini: Updated directory metadata
+2026/01/24 22:02:18 INFO  : Documenti: Updated directory metadata
+2026/01/24 22:02:18 INFO  : 
+Transferred:   	   10.684 MiB / 10.684 MiB, 100%, 1.335 MiB/s, ETA 0s
+Checks:              2368 / 2368, 100%, Listed 5211
+Transferred:            7 / 7, 100%
+Elapsed time:        16.3s
+
+2026-01-24 22:02:18 - Script rclone 2.1-b2 terminato.
+
+2026-01-25 12:23:16 - AVVIO SCRIPT rclone 2.1-b2
+2026-01-25 12:23:16 - Uso rsync --fuzzy come funzione standard
+2026-01-25 12:23:18 - Disattivata funzione --dry-run per comando rclone, il servizio rclone avrà efficacia.
+2026-01-25 12:23:19 - Attivazione funzione bisync su OneDrive mediante rclone.
+2026/01/25 12:23:21 INFO  : [2mSetting --ignore-listing-checksum as neither --checksum nor --compare checksum are set.[0m
+2026/01/25 12:23:21 INFO  : Bisyncing with Comparison Settings: 
+{
+	"Modtime": true,
+	"Size": true,
+	"Checksum": false,
+	"HashType1": 0,
+	"HashType2": 0,
+	"NoSlowHash": false,
+	"SlowHashSyncOnly": false,
+	"SlowHashDetected": true,
+	"DownloadHash": false
+}
+2026/01/25 12:23:21 INFO  : Synching Path1 "/home/manuel/" with Path2 "OneDrive:Bazzite/"
+2026/01/25 12:23:21 INFO  : Copying Path2 files to Path1
+2026/01/25 12:23:21 INFO  : - [34mPath2[0m    [35mResync is copying files to[0m         - [36mPath1[0m
+2026/01/25 12:23:21 INFO  : Scrivania: Set directory modification time (using SetModTime)
+2026/01/25 12:23:22 INFO  : Immagini/Steam: Set directory modification time (using SetModTime)
+2026/01/25 12:23:22 INFO  : Documenti/bash: Set directory modification time (using SetModTime)
+2026/01/25 12:23:24 INFO  : Documenti/GitHub/rclone_script/.git: Set directory modification time (using SetModTime)
+2026/01/25 12:23:25 INFO  : Immagini/Schermate/Schermata_20260123_134639.png: Copied (new)
+2026/01/25 12:23:25 INFO  : Immagini/Schermate/Schermata_20260124_135128.png: Copied (new)
+2026/01/25 12:23:25 INFO  : Immagini/Schermate/Schermata_20260123_134841.png: Copied (new)
+2026/01/25 12:23:25 INFO  : Immagini/Schermate/Schermata_20260123_231730.png: Copied (new)
+2026/01/25 12:23:25 INFO  : Immagini/Schermate/Schermata_20260124_165149.png: Copied (new)
+2026/01/25 12:23:25 INFO  : Immagini/Schermate/Schermata_20260124_183458.png: Copied (new)
+2026/01/25 12:23:25 INFO  : Immagini/Schermate/Screenshot_2026-01-23_14-52-36.png: Copied (new)
+2026/01/25 12:23:26 INFO  : Immagini/Schermate/Schermata_20260124_183704.png: Copied (new)
+2026/01/25 12:23:27 INFO  : Immagini/Steam/238010_20260123222631_1.png: Copied (new)
+2026/01/25 12:23:27 INFO  : Documenti/GitHub/rclone_script/.git/index: Copied (replaced existing)
+2026/01/25 12:23:27 INFO  : Documenti/bash/CachyOS_Plasma_Login_Manager.sh: Copied (new)
+2026/01/25 12:23:27 INFO  : Immagini/Steam/SlimeRancher-2026-01-24-07-21-03-65.png: Copied (new)
+2026/01/25 12:23:27 INFO  : Documenti/bash/attivare_USB_per_iPhone.sh: Copied (new)
+2026/01/25 12:23:27 INFO  : Documenti/bash/pacchetti_per_gaming_su_CachyOS.sh: Copied (replaced existing)
+2026/01/25 12:23:30 INFO  : Documenti/GitHub/rclone_script/.git: Updated directory metadata
+2026/01/25 12:23:30 INFO  : Documenti/GitHub/rclone_script: Updated directory metadata
+2026/01/25 12:23:30 INFO  : Documenti/bash: Updated directory metadata
+2026/01/25 12:23:30 INFO  : Immagini/Steam: Updated directory metadata
+2026/01/25 12:23:30 INFO  : Immagini/Schermate: Updated directory metadata
+2026/01/25 12:23:30 INFO  : Documenti/GitHub: Updated directory metadata
+2026/01/25 12:23:30 INFO  : Immagini: Updated directory metadata
+2026/01/25 12:23:30 INFO  : Documenti: Updated directory metadata
+2026/01/25 12:23:30 INFO  : - [36mPath1[0m    [35mResync is copying files to[0m         - [36mPath2[0m
+2026/01/25 12:23:35 INFO  : Immagini/Schermate/Screenshot_2026-01-24_22-06-37.png: Copied (new)
+2026/01/25 12:23:39 INFO  : Immagini/Schermate: Updated directory metadata
+2026/01/25 12:23:39 INFO  : Immagini: Updated directory metadata
+2026/01/25 12:23:39 INFO  : Resync updating listings
+2026/01/25 12:23:39 INFO  : Validating listings for Path1 "/home/manuel/" vs Path2 "OneDrive:Bazzite/"
+2026/01/25 12:23:39 INFO  : [32mBisync successful[0m
+2026/01/25 12:23:39 INFO  : 
+Transferred:   	   19.261 MiB / 19.261 MiB, 100%, 2.752 MiB/s, ETA 0s
+Checks:              3962 / 3962, 100%, Listed 10456
+Transferred:           15 / 15, 100%
+Elapsed time:        18.2s
+
+2026-01-25 12:23:39 - Attivazione funzione sync su Google Drive mediante rclone.
+2026/01/25 12:23:44 INFO  : Immagini/Schermate/Screenshot_2026-01-24_22-06-37.png: Copied (new)
+2026/01/25 12:23:54 INFO  : Immagini/Schermate: Updated directory metadata
+2026/01/25 12:23:55 INFO  : Immagini: Updated directory metadata
+2026/01/25 12:23:55 INFO  : 
+Transferred:   	    1.187 MiB / 1.187 MiB, 100%, 303.776 KiB/s, ETA 0s
+Checks:              2387 / 2387, 100%, Listed 5233
+Transferred:            1 / 1, 100%
+Elapsed time:        14.8s
+
+2026-01-25 12:23:55 - Script rclone 2.1-b2 terminato.
+
