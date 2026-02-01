@@ -1,37 +1,39 @@
 #!/bin/bash
 
-# Importing script global variables
-cd "$(dirname "$0")"
-source "$(dirname "$0")/vars.sh"
+REPO_OWNER="manuelbalbi"
+REPO_NAME="rclone_script"
+BRANCH="main"
+GITFILE="vars.sh"
+GITPACKAGE=("var.sh" "rclone_script.sh")
+UPDATE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/refs/heads/main/${GITFILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
+SCRIPT_PATH="$(readlink -f "$0")"
 
-# Create config and install directory
-mkdir -p "$INSTALLDIR"
-
-rsync --archive --update --backup --progress --suffix=_$(date +%Y%m%d) "${INSTALLDIR}/${CONF_DIR}/" "${INSTALLDIR}/${CONF_DIR}_bak"
-
-
-# Delete logs older than $TFINDFLUSH
-find "$INSTALLDIR" -type f -name "*log*" -mtime +"$TFINDFLUSH" -delete
+# Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
+INSTALLDIR="$HOME/.config/rclone_script"
+TEMP_FILE="temp.zip"
+CONF_FILE_UP="rclone_script_upload.conf"
+CONF_FILE_DOWN="rclone_script_download.conf"
+CONF_DIR="config_files"
+CONFUP="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_UP}"
+CONFDW="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_DOWN}"
 
 # Estrai in cartella temporanea
-TEMP_EXTRACT="$INSTALLDIR/tmp"
-rm -rf "$TEMP_EXTRACT" # Pulisce residui precedenti
-mkdir -p "$TEMP_EXTRACT"
 echo "Download in corso..."
-curl -fsL "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/$BRANCH.zip" -o "$INSTALLDIR/$TEMP_FILE"
-unzip -qo "$INSTALLDIR/$TEMP_FILE" -d "$TEMP_EXTRACT"
+curl --fail --location --verbose "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/$BRANCH.zip" -o "$INSTALLDIR/$TEMP_FILE"
 
-SOURCE_DIR="$TEMP_EXTRACT/$REPO_NAME-$BRANCH"
+unzip -o "$INSTALLDIR/$TEMP_FILE" -d "$INSTALLDIR"
 
-mv -f "$SOURCE_DIR/" "$INSTALLDIR/"
+# Usiamo il wildcard * per essere sicuri di beccare la cartella estratta
+mv -f "$INSTALLDIR/$REPO_NAME-$BRANCH/"* "$INSTALLDIR/" 2>/dev/null || mv -f "$INSTALLDIR/$REPO_NAME-main/"* "$INSTALLDIR/"
 
-rm -rdf "$TEMP_FILE" "$TEMP_EXTRACT"
+rm -rf "$INSTALLDIR/$TEMP_FILE" "$INSTALLDIR/$REPO_NAME-$BRANCH" "$INSTALLDIR/$REPO_NAME-main"
 
-echo "Tutti i file sono stati elaborati correttamente."
+chmod +x "$INSTALLDIR/rclone_script.sh"
+sudo ln -sf "$INSTALLDIR/rclone_script.sh" /usr/local/bin/rclone-script
 
-chmod +x rclone_script.sh
-sudo ln -s "$INSTALLDIR/rclone_script.sh" /usr/local/bin/rclone-script
-chmod +x rclone_daemon.sh
+echo "Installazione completata con successo."
+
+# chmod +x rclone_daemon.sh
 
 # -------------------------------------------------------------------------------------------------
 # Create missing config files

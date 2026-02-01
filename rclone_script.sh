@@ -5,8 +5,74 @@
 # ---------------- ATTIVAZIONE DI BACKUP E COPIA DI FILE SELEZIONATI CON rsync / cp ---------------
 # -------------------------------------------------------------------------------------------------
 
-cd "$(dirname "$0")"
-source "$(dirname "$0")/vars.sh"
+# Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
+VERSIONE="2.4"
+BUILD=20260201
+
+# Configurazione per repository GitHub pubblico
+REPO_OWNER="manuelbalbi"
+REPO_NAME="rclone_script"
+BRANCH="main"
+GITFILE="vars.sh"
+GITPACKAGE=("var.sh" "rclone_script.sh")
+UPDATE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/refs/heads/main/${GITFILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
+SCRIPT_PATH="$(readlink -f "$0")"
+
+# Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
+INSTALLDIR="$HOME/.config/rclone_script"
+TEMP_FILE="temp.zip"
+TEMP_EXTRACT="$INSTALLDIR/tmp"
+LOGNAME="$(date +%F)_log_rclone_${BUILD}.log"
+LOGFILE="${INSTALLDIR}/${LOGNAME}"
+CONF_FILE_UP="rclone_script_upload.conf"
+CONF_FILE_DOWN="rclone_script_download.conf"
+CONF_DIR="config_files"
+CONFUP="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_UP}"
+CONFDW="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_DOWN}"
+CONFSERVICE="$HOME/.config/systemd/user/rclone-bisync.service"
+CONFTIMER="$HOME/.config/systemd/user/rclone-bisync.timer"
+VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync
+TFINDFLUSH="30" # tempo in giorni per -mtime su comando find per cancellazione file di log / pulizia backlog vecchio
+LOCKFILEDIR="$HOME/.cache/rclone/bisync/" # riferimento a https://rclone.org/bisync/#lock-file
+
+# Livello di informazioni registrate da rclone nel file di log
+# Seleziona il livello attivando/disattivando il commento
+LOGLVL="INFO"
+#LOGLVL="DEBUG"
+# Configurazioni base dello script
+DR="Attivare dry-run"
+DRYRUN="--dry-run"
+TSYNC=""
+
+# Definizione valori colori
+GREEN="\e[38;2;97;187;70m"
+YELLOW="\e[38;2;245;211;0m"
+ORANGE="\e[38;2;247;148;29m"
+RED="\e[38;2;226;31;38m"
+PURPLE="\e[38;2;151;57;153m"
+BLUE="\e[38;2;0;156;222m"
+# Formattazione testo
+BOLD="\e[1m"
+ITALIC="\e[3m"
+RESET_BOLD="\e[22m"
+RESET_ITALIC="\e[23m"
+# Reset formattazione
+RESET="\e[0m"
+
+# Configurazione estetica per gum/ugum mediante variabili d'ambiente
+export GUM_CHOOSE_CURSOR=" "
+export GUM_CHOOSE_CURSOR_FOREGROUND="#FF9F1C"
+export GUM_CHOOSE_SELECTED_FOREGROUND="#FF9F1C"
+
+# Configurazione spinner
+six_dot_cell_pattern=("⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇")
+eight_dot_cell_pattern=("⣾" "⣷" "⣯" "⣟" "⡿" "⢿" "⣻" "⣽")
+
+# Set the pattern
+braille_spinner=("${eight_dot_cell_pattern[@]}")
+
+# Set the duration for each spinner frame (in seconds)
+frame_duration=0.1
 
 # -------------------------------------------------------------------------------------------------
 # ------------------------------------------ AVVIO SCRIPT -----------------------------------------
@@ -96,6 +162,7 @@ if [ ! -f "$CONFUP" ]; then
 
 # 1. Inclusioni specifiche
 + Documenti/GitHub/**
++ .config/rclone_script
 
 # 2. Esclusione generale dei file/cartelle nascoste
 - .*{/**,}
@@ -128,6 +195,7 @@ if [ ! -f "$CONFDW" ]; then
 
 # 1. Inclusioni specifiche anche nascoste
 + Documenti/GitHub/**
++ .config/rclone_script
 
 # 2. Esclusione generale dei file/cartelle nascoste
 - .*{/**,}
