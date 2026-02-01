@@ -1,18 +1,28 @@
+
+# --------------------------------- INIZIO DICHIARAZIONE VARIABILI --------------------------------
+
+# Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
+VERSIONE="2.4"
+BUILD=20260201
+
 # Configurazione per repository GitHub pubblico
-GITUSER="manuelbalbi"
-GITREPO="rclone_script"
-GITFILE="rclone_script.sh"
-UPDATE_URL="https://raw.githubusercontent.com/${GITUSER}/${GITREPO}/refs/heads/main/${GITFILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
+REPO_OWNER="manuelbalbi"
+REPO_NAME="rclone_script"
+BRANCH="main"
+GITFILE="vars.sh"
+GITPACKAGE=("var.sh" "rclone_script.sh")
+UPDATE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/refs/heads/main/${GITFILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
 SCRIPT_PATH="$(readlink -f "$0")"
 
 # Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
-LOGDIR="$HOME/.config/rclone_script"
+INSTALLDIR="$HOME/.config/rclone_script"
 LOGNAME="$(date +%F)_log_rclone_${BUILD}.log"
-LOGFILE="${LOGDIR}/${LOGNAME}"
+LOGFILE="${INSTALLDIR}/${LOGNAME}"
 CONF_FILE_UP="rclone_script_upload.conf"
 CONF_FILE_DOWN="rclone_script_download.conf"
-CONFUP="${LOGDIR}/${CONF_FILE_UP}"
-CONFDW="${LOGDIR}/${CONF_FILE_DOWN}"
+CONF_DIR="config_files"
+CONFUP="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_UP}"
+CONFDW="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_DOWN}"
 CONFSERVICE="$HOME/.config/systemd/user/rclone-bisync.service"
 CONFTIMER="$HOME/.config/systemd/user/rclone-bisync.timer"
 VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync

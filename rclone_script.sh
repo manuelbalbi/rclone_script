@@ -5,12 +5,6 @@
 # ---------------- ATTIVAZIONE DI BACKUP E COPIA DI FILE SELEZIONATI CON rsync / cp ---------------
 # -------------------------------------------------------------------------------------------------
 
-# --------------------------------- INIZIO DICHIARAZIONE VARIABILI --------------------------------
-
-# Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
-VERSIONE="2.3"
-BUILD=20260130
-
 # Importa le variabili
 # Se vars.sh è nella stessa cartella dello script:
 source "$(dirname "$0")/vars.sh"
@@ -43,10 +37,10 @@ if [ -z "$BASH_VERSION" ]; then
 fi
 
 # Creo la cartella per il log se non già esistente (uso le virgolette per sicurezza)
-mkdir -p "$LOGDIR"
+mkdir -p "$INSTALLDIR"
 
 # Cerco e cancello file di log più vecchi di $TFINDFLUSH
-find "$LOGDIR" -type f -name "*log*" -mtime +"$TFINDFLUSH" -delete
+find "$INSTALLDIR" -type f -name "*log*" -mtime +"$TFINDFLUSH" -delete
 
 # --- LOGICA DI AGGIORNAMENTO ---
 echo "Controllo versione in corso da ${UPDATE_URL}..."
