@@ -5,8 +5,7 @@
 # ---------------- ATTIVAZIONE DI BACKUP E COPIA DI FILE SELEZIONATI CON rsync / cp ---------------
 # -------------------------------------------------------------------------------------------------
 
-# Importa le variabili
-# Se vars.sh è nella stessa cartella dello script:
+cd "$(dirname "$0")"
 source "$(dirname "$0")/vars.sh"
 
 # -------------------------------------------------------------------------------------------------

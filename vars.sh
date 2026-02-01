@@ -1,6 +1,7 @@
 
 # --------------------------------- INIZIO DICHIARAZIONE VARIABILI --------------------------------
 
+cd "$(dirname "$0")"
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
 VERSIONE="2.4"
 BUILD=20260201
@@ -16,6 +17,8 @@ SCRIPT_PATH="$(readlink -f "$0")"
 
 # Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
 INSTALLDIR="$HOME/.config/rclone_script"
+TEMP_FILE="temp.zip"
+TEMP_EXTRACT="$INSTALLDIR/tmp"
 LOGNAME="$(date +%F)_log_rclone_${BUILD}.log"
 LOGFILE="${INSTALLDIR}/${LOGNAME}"
 CONF_FILE_UP="rclone_script_upload.conf"
