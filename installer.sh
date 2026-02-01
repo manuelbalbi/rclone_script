@@ -44,10 +44,10 @@ if [ ! -f "$CONFUP" ]; then
 # Please refer to https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file for configuring rsync filters
 
 # Exclude hidden paths
++ .config/rclone_script/**
 - .*{/**,}
 
 # Including
-+ .config/rclone_script/**
 + Documenti/**
 + Games/**
 + Immagini/**
@@ -68,10 +68,10 @@ if [ ! -f "$CONFDW" ]; then
 # Please refer to https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file for configuring rsync filters
 
 # Exclude hidden paths
++ .config/rclone_script/**
 - .*{/**,}
 
 # Including
-+ .config/rclone_script/**
 + Documenti/**
 + Games/**
 + Immagini/**
