@@ -7,7 +7,7 @@
 
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
 VERSIONE="2.4"
-BUILD=20260201
+BUILD=20260202
 
 # Configurazione per repository GitHub pubblico
 REPO_OWNER="manuelbalbi"
@@ -173,7 +173,7 @@ if [ ! -f "$CONFUP" ]; then
 - Games/Heroic/**
 + Games/**
 - Immagini/Windows/**
-- Immagini/2025-12-22 milena smash cake/
+- Immagini/2025-12-22 milena smash cake/**
 + Immagini/**
 + Musica/**
 + Pubblici/**
@@ -504,5 +504,6 @@ if [ "$(ps -o sid= -p $$)" -eq "$$" ]; then
     echo -e "🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore. ${RED}È possibile chiudere la finestra.${RESET}"
 else
     #   ripristino tput all'uscita
-    trap "tput csr 0 $(($(tput lines) - 1)); clear; echo '🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore.'; exit" EXIT
+    # trap "tput csr 0 $(($(tput lines) - 1)); clear; echo '🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore.'; exit" EXIT
+    trap "tput csr 0 $(($(tput lines) - 1)); echo '🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore.'; exit" EXIT
 fi

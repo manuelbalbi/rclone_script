@@ -17,6 +17,9 @@ CONF_DIR="config_files"
 CONFUP="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_UP}"
 CONFDW="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_DOWN}"
 
+mkdir -p "${INSTALLDIR}"
+mkdir -p "${INSTALLDIR}/${CONF_DIR}"
+
 # Estrai in cartella temporanea
 echo "Download in corso..."
 curl --fail --location --verbose "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/$BRANCH.zip" -o "$INSTALLDIR/$TEMP_FILE"
@@ -43,13 +46,16 @@ if [ ! -f "$CONFUP" ]; then
 # rclone_script default configuration created for v. ${VERSIONE} build ${BUILD} file $CONF_FILE_UP
 # Please refer to https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file for configuring rsync filters
 
-# Exclude hidden paths
+# Hidden paths
 + .config/rclone_script/**
 - .*{/**,}
 
 # Including
+- Documenti/backup/**
 + Documenti/**
 + Games/**
+- Immagini/Windows/**
+- Immagini/2025-12-22 milena smash cake/**
 + Immagini/**
 + Musica/**
 + Pubblici/**
@@ -67,17 +73,21 @@ if [ ! -f "$CONFDW" ]; then
 # rclone_script default configuration created for v. ${VERSIONE} build ${BUILD} file $CONF_FILE_UP
 # Please refer to https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file for configuring rsync filters
 
-# Exclude hidden paths
+# Hidden paths
 + .config/rclone_script/**
 - .*{/**,}
 
 # Including
+- Documenti/backup/**
 + Documenti/**
 + Games/**
+- Immagini/Windows/**
+- Immagini/2025-12-22 milena smash cake/**
 + Immagini/**
 + Musica/**
 + Pubblici/**
 + Scrivania/**
+- Video/Radeon ReLive/**
 + Video/**
 
 # Exclude everything else
