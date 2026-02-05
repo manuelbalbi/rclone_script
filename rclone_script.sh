@@ -6,13 +6,8 @@
 # -------------------------------------------------------------------------------------------------
 
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
-<<<<<<< Updated upstream
-VERSIONE="2.5"
-BUILD=20260205
-=======
 VERSIONE="2.5.1"
 BUILD=20260205251
->>>>>>> Stashed changes
 
 # Configurazione per repository GitHub pubblico
 REPO_OWNER="manuelbalbi"
@@ -289,28 +284,6 @@ else
     EXTRA_FLAGS="--fuzzy"
 fi
 
-# BUG!!! TROVARE SOLUZIONE PER IL BACKUP OPPURE ELIMINARE LA SEZIONE
-# Esecuzione backup con rsync documenti dichiarati nell'array
-#declare -A backuploop=(
-#    ["$HOME/Documenti/"]="$HOME/Documenti/Backup"
-#    ["$HOME/Documenti/bash/*"]="$HOME/Documenti/Backup/bash"
-#)
-
-#for src in "${!backuploop[@]}"; do
-#    dest="${backuploop[$src]}"
-
-    # Nota: rsync gestisce meglio le cartelle che le wildcard dirette
-#    echo -e "Backup locale da ${ORANGE}$src${RESET} a ${PURPLE}$dest${RESET}..."
-
-#    mkdir -p "$dest"
-
-    # Backup: raggruppa le opzioni e usa le variabili corrette
-    # Nota: ho rimosso *.* e usato la cartella sorgente direttamente
-#    rsync --backup --update --dirs --archive $EXTRA_FLAGS --progress "$src" "$dest" 2> >(while read -r line; do
-#        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "$line"
-#      done >> "$LOGFILE")
-# done
-
 # Sposta gli screenshot creati in COSMIC nella cartella desiderata
 mv --verbose $HOME/Immagini/Screenshot* $HOME/Immagini/Schermate 2> >(while read -r line; do
     printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "$line"
@@ -446,15 +419,9 @@ case $TSYNC in
     *) # Copia il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
         echo -e "Attivazione funzione ${ORANGE}Copy${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
-<<<<<<< Updated upstream
-            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync con resync su ${RCLONE_REMOTE} mediante rclone. Il risultato finale sarà la somma dei file locali e remoti." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
-            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
-=======
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
             systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
->>>>>>> Stashed changes
         done
         ;;
 esac
