@@ -6,4 +6,11 @@ It also copies some Steam screenshots to specific folders and moves "Screenshot"
 It's written for my needs right now, the goal is to make a useful generic script _in the future_.
 
 From version *2.2* build _20260128_ the script serch the repository to auto update itself.
-From versione *2.5* build _20260205_ the script search for rclone remotes to automatically use all of the listed remotes to sync/bisync/resync/copy data. The _download_ function sync only from the first entry in the remote list.
+From versione *2.5* build _20260205_ the script search for rclone remotes to automatically use all of the listed remotes to sync/bisync/resync/copy data. The _download_ function sync only from the first entry in the remote list.  
+Added _rclone-script_ user alias to launch the script.
+
+## Features
+
+[X] User alias *rclone-script*
+[X] Auto update the script
+[X] Auto fetch remote list from rclone config
