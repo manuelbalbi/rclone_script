@@ -5,30 +5,36 @@
 # ---------------- ATTIVAZIONE DI BACKUP E COPIA DI FILE SELEZIONATI CON rsync / cp ---------------
 # -------------------------------------------------------------------------------------------------
 
-# --------------------------------- INIZIO DICHIARAZIONE VARIABILI --------------------------------
-
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
-VERSIONE="2.2"
-BUILD=20260128
+VERSIONE="2.5"
+BUILD=20260205
 
 # Configurazione per repository GitHub pubblico
-USER="manuelbalbi"
-REPO="rclone_script"
-FILE="rclone_script.sh"
-UPDATE_URL="https://raw.githubusercontent.com/${USER}/${REPO}/refs/heads/main/${FILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
+REPO_OWNER="manuelbalbi"
+REPO_NAME="rclone_script"
+BRANCH="main"
+GITFILE="rclone_script.sh"
+GITPACKAGE=("var.sh" "rclone_script.sh")
+UPDATE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/refs/heads/main/${GITFILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
 SCRIPT_PATH="$(readlink -f "$0")"
 
 # Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
-LOGDIR="$HOME/.config/rclone_script"
+INSTALLDIR="$HOME/.config/rclone_script"
+TEMP_FILE="temp.zip"
+TEMP_EXTRACT="$INSTALLDIR/tmp"
 LOGNAME="$(date +%F)_log_rclone_${BUILD}.log"
-LOGFILE="${LOGDIR}/${LOGNAME}"
+LOGFILE="${INSTALLDIR}/${LOGNAME}"
 CONF_FILE_UP="rclone_script_upload.conf"
 CONF_FILE_DOWN="rclone_script_download.conf"
-CONFUP="${LOGDIR}/${CONF_FILE_UP}"
-CONFDW="${LOGDIR}/${CONF_FILE_DOWN}"
+CONF_DIR="config_files"
+CONFUP="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_UP}"
+CONFDW="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_DOWN}"
+CONFSERVICE="$HOME/.config/systemd/user/rclone-bisync.service"
+CONFTIMER="$HOME/.config/systemd/user/rclone-bisync.timer"
 VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync
 TFINDFLUSH="30" # tempo in giorni per -mtime su comando find per cancellazione file di log / pulizia backlog vecchio
 LOCKFILEDIR="$HOME/.cache/rclone/bisync/" # riferimento a https://rclone.org/bisync/#lock-file
+RCLONE_REMOTE=$(rclone listremotes | head -n 1 | tr -d ':') # primo servizio configurato su rclone
 
 # Livello di informazioni registrate da rclone nel file di log
 # Seleziona il livello attivando/disattivando il commento
@@ -54,14 +60,12 @@ RESET_ITALIC="\e[23m"
 # Reset formattazione
 RESET="\e[0m"
 
-
 # Configurazione estetica per gum/ugum mediante variabili d'ambiente
 export GUM_CHOOSE_CURSOR=" "
 export GUM_CHOOSE_CURSOR_FOREGROUND="#FF9F1C"
 export GUM_CHOOSE_SELECTED_FOREGROUND="#FF9F1C"
 
 # Configurazione spinner
-# Define an array of Braille patterns for a spinner
 six_dot_cell_pattern=("⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇")
 eight_dot_cell_pattern=("⣾" "⣷" "⣯" "⣟" "⡿" "⢿" "⣻" "⣽")
 
@@ -99,10 +103,10 @@ if [ -z "$BASH_VERSION" ]; then
 fi
 
 # Creo la cartella per il log se non già esistente (uso le virgolette per sicurezza)
-mkdir -p "$LOGDIR"
+mkdir -p "$INSTALLDIR"
 
 # Cerco e cancello file di log più vecchi di $TFINDFLUSH
-find "$LOGDIR" -type f -name "*log*" -mtime +"$TFINDFLUSH" -delete
+find "$INSTALLDIR" -type f -name "*log*" -mtime +"$TFINDFLUSH" -delete
 
 # --- LOGICA DI AGGIORNAMENTO ---
 echo "Controllo versione in corso da ${UPDATE_URL}..."
@@ -159,6 +163,7 @@ if [ ! -f "$CONFUP" ]; then
 
 # 1. Inclusioni specifiche
 + Documenti/GitHub/**
++ .config/rclone_script
 
 # 2. Esclusione generale dei file/cartelle nascoste
 - .*{/**,}
@@ -169,7 +174,7 @@ if [ ! -f "$CONFUP" ]; then
 - Games/Heroic/**
 + Games/**
 - Immagini/Windows/**
-- Immagini/2025-12-22 milena smash cake/
+- Immagini/2025-12-22 milena smash cake/**
 + Immagini/**
 + Musica/**
 + Pubblici/**
@@ -191,6 +196,7 @@ if [ ! -f "$CONFDW" ]; then
 
 # 1. Inclusioni specifiche anche nascoste
 + Documenti/GitHub/**
++ .config/rclone_script
 
 # 2. Esclusione generale dei file/cartelle nascoste
 - .*{/**,}
@@ -223,6 +229,13 @@ for bin in "${REQUISITI[@]}"; do
         exit 1
     fi
 done
+
+# Controllo esiste almeno un servizio remoto configurato
+if [ -z "$RCLONE_REMOTE" ]; then
+    echo -e "Errore: Nessun remote configurato in rclone, assicurarsi di configurarne almeno uno con ${BOLD}rclone config${RESET_BOLD}!"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "ERRORE" "Non risulta alcun servizio configurato su rclone, assicurarsi di configurarne almeno uno con rclone config." >> "$LOGFILE"
+    exit 1
+fi
 
 # -------------------------------------------------------------------------------------------------
 # Function to start the spinner in the background
@@ -267,22 +280,35 @@ if rsync --help | grep -q "detect-renamed"; then
     EXTRA_FLAGS="--detect-renamed"
 else
     echo -e "uso ${ORANGE}--fuzzy${RESET} come funzione standard."
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Uso --fuzzy$ come funzione custom." >> "$LOGFILE"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Uso --fuzzy$ come funzione standard." >> "$LOGFILE"
     EXTRA_FLAGS="--fuzzy"
 fi
 
-# Esecuzione backup con rsync documenti presenti in cartella Documenti e in Documenti/bash
-# Documenti
-rsync --backup --update --archive $EXTRA_FLAGS --progress ~/Documenti/*.* ~/Documenti/Backup 2> >(while read -r line; do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "$line"
-done >> "$LOGFILE")
-# Documenti/bash
-rsync --backup --update --archive $EXTRA_FLAGS --progress ~/Documenti/bash/*.* ~/Documenti/Backup/bash 2> >(while read -r line; do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "$line"
-done >> "$LOGFILE")
+# BUG!!! TROVARE SOLUZIONE PER IL BACKUP OPPURE ELIMINARE LA SEZIONE
+# Esecuzione backup con rsync documenti dichiarati nell'array
+#declare -A backuploop=(
+#    ["$HOME/Documenti/"]="$HOME/Documenti/Backup"
+#    ["$HOME/Documenti/bash/*"]="$HOME/Documenti/Backup/bash"
+#)
+
+#for src in "${!backuploop[@]}"; do
+#    dest="${backuploop[$src]}"
+
+    # Nota: rsync gestisce meglio le cartelle che le wildcard dirette
+#    echo -e "Backup locale da ${ORANGE}$src${RESET} a ${PURPLE}$dest${RESET}..."
+
+#    mkdir -p "$dest"
+
+    # Backup: raggruppa le opzioni e usa le variabili corrette
+    # Nota: ho rimosso *.* e usato la cartella sorgente direttamente
+#    rsync --backup --update --dirs --archive $EXTRA_FLAGS --progress "$src" "$dest" 2> >(while read -r line; do
+#        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "$line"
+#      done >> "$LOGFILE")
+# done
+
 # Sposta gli screenshot creati in COSMIC nella cartella desiderata
 mv --verbose $HOME/Immagini/Screenshot* $HOME/Immagini/Schermate 2> >(while read -r line; do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "NOTICE" "$line"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "$line"
 done >> "$LOGFILE")
 
 # ---------------------------------- COPIA DOCUMENTI SELEZIONATI ----------------------------------
@@ -381,45 +407,44 @@ case $TSYNC in
         trap "tput csr 0 $(($(tput lines) - 1)); clear; echo 'Uscita dallo script.'; exit" EXIT
         exit
         ;;
-    "Sync") # questo codice si attiva solo con il comando ugum, disponibile esclusivamente su Bazzite
-        # 2.b.2 sincronizza il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
+    "Sync") # Sincronizza il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
         echo -e "Attivazione funzione ${ORANGE}Sync${RESET}."
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO!" "Sincronizzazione con funzione sync di rclone su OneDrive. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/ 2>&1 | tee --append "$LOGFILE"
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO!" "Sincronizzazione con funzione sync di rclone su Google Drive. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ Google:/ 2>&1 | tee --append "$LOGFILE"
+        for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Sincronizzazione con funzione sync di rclone su ${RCLONE_REMOTE}. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato sync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
+        done
         ;;
-    "Download")
-        # 2.b.3 effettua il download integrale dal servizio remoto OneDrive secondo i filtri stabiliti in $CONFDW
+    "Download") # Effettua il download integrale dal primo servizio remoto dichiarato in rclone secondo i filtri stabiliti in $CONFDW
+        RCLONE_REMOTE=$(rclone listremotes | head -n 1 | tr -d ':')
         echo -e "Attivazione ${ORANGE}Download mediante funzione sync${RESET}."
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO!!" "Download da OneDrive mediante funzione sync di rclone. Sovrascrive i file locali con quelli remoti incluse cancellazioni!!!" >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Download rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "$LOGFILE" --filter-from $CONFDW OneDrive:/Bazzite/ $HOME/ 2>&1 | tee --append "$LOGFILE"
+        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Download da OneDrive mediante funzione sync di rclone. Sovrascrive i file locali con quelli remoti incluse cancellazioni!!!" >> "$LOGFILE"
+        systemd-inhibit --what=idle:sleep --who="rclone" --why="Download rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "${LOGFILE}" --filter-from $CONFDW "${RCLONE_REMOTE}:/" $HOME/ 2>&1 | tee --append "$LOGFILE"
+        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato download da ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         ;;
-    "Bisync")
-        # 2.b.4 effettua la bisincronizzazione da OneDrive, quindi avvia la sincronizzazione con Google il tutto con i filtri di $CONFUP
+    "Bisync") # Bisync tiene aggiornati il serivizio remoto con i dati locali, anche cancellandoli
         echo -e "Attivazione funzione ${ORANGE}Bisync${RESET}."
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync su OneDrive mediante rclone." >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --force --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/ 2>&1 | tee --append "$LOGFILE"
-        echo -e "$(date '+%Y-%m-%d %H:%M:%S') - " >> $LOGFILE
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO!" "Attivazione funzione sync su Google Drive mediante rclone. In caso di errore sulla sincronizzazione prcedente i dati potrebbe andare persi!" >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ Google:/ 2>&1 | tee --append "$LOGFILE"
+        for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --force --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
+        done
         ;;
-    "Resync")
-        # 2.b.5 effettua la bisincronizzazione da OneDrive, quindi avvia la sincronizzazione con Google il tutto con i filtri di $CONFUP con funzione RESYNC - da utilizzare alla prima risincronizzazione
+    "Resync") # Resync utilizza rclone bisync resync per effettuare la somme dei file presenti sul locale e sul remoto
         echo -e "Attivazione funzione ${ORANGE}Bisync con resync${RESET}."
-        echo -e "$(date '+%Y-%m-%d %H:%M:%S') - " >> $LOGFILE
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync con resync su OneDrive mediante rclone. Il risultato finale sarà la somma dei file locali e remoti." >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resync --resync-mode newer --max-age $VITA --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/ 2>&1 | tee --append "$LOGFILE"
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO!" "Attivazione funzione sync su Google Drive mediante rclone. In caso di errore sulla sincronizzazione prcedente i dati potrebbe andare persi!" >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ Google:/ 2>&1 | tee --append "$LOGFILE"
+        for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync con resync su ${RCLONE_REMOTE} mediante rclone. Il risultato finale sarà la somma dei file locali e remoti." >> "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resync --max-lock 2m --resync-mode newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato resync su ${RCLONE_REMOTE} mediante rclone bisync." >> "$LOGFILE"
+        done
         ;;
-    *)
-        # 2.b.6 copia il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
+    *) # Copia il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
         echo -e "Attivazione funzione ${ORANGE}Copy${RESET}."
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione copy di rclone su OneDrive." >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ OneDrive:/Bazzite/ 2>&1 | tee --append "$LOGFILE"
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione copy di rclone su Google Drive." >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --exclude "$LOGFILE" --filter-from $CONFUP $HOME/ Google:/ 2>&1 | tee --append "$LOGFILE"
+        for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync con resync su ${RCLONE_REMOTE} mediante rclone. Il risultato finale sarà la somma dei file locali e remoti." >> "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
+        done
         ;;
 esac
 
@@ -436,5 +461,5 @@ if [ "$(ps -o sid= -p $$)" -eq "$$" ]; then
     echo -e "🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore. ${RED}È possibile chiudere la finestra.${RESET}"
 else
     #   ripristino tput all'uscita
-    trap "tput csr 0 $(($(tput lines) - 1)); clear; echo '🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore.'; exit" EXIT
+    trap "tput csr 0 $(($(tput lines) - 1)); clear ; echo '🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore.'; exit" EXIT
 fi
