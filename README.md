@@ -2,7 +2,7 @@
 Simple bash script to automate sync on cloud services from Terminal
 
 _rclone_script_ is a simple script written in *bash* that connect to rclone listed remotes previously configured via _rclone config_ via manual launch right now.
-It also copies some Steam screenshots to specific folders and moves "Screenshot*" files to a specific folder within "Immagini".
+It also copies some Steam screenshots to specific folders and moves "Screenshot" files to a specific folder within "Immagini".
 It's written for my needs right now, the goal is to make a useful generic script _in the future_.
 From version *2.2* build _20260128_ the script serch the repository to auto update itself.
 From versione *2.5* build _20260205_ the script search for rclone remotes to automatically use all of the listed remotes to sync/bisync/resync/copy data. The _download_ function sync only from the first entry in the remote list.
