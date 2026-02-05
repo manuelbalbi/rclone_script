@@ -11,11 +11,11 @@ Added _rclone-script_ user alias to launch the script.
 
 ## Features
 
-[X] User alias *rclone-script*
-[X] Auto update the script
-[X] Auto fetch remote list from rclone config
-[ ] Guided configuration
-[ ] No suspend trigger
+- [X] User alias *rclone-script*
+- [X] Auto update the script
+- [X] Auto fetch remote list from rclone config
+- [ ] Guided configuration
+- [ ] No suspend trigger
 
 > [!IMPORTANT]
 > The rclone_script needs that at least one remote in configured in rclone (rclone config via shell terminal)
