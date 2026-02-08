@@ -6,8 +6,9 @@
 # -------------------------------------------------------------------------------------------------
 
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
-VERSIONE="2.5.1"
-BUILD=20260205251
+VERSIONE="2.5.2"
+#     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
+BUILD=20260208252
 
 # Configurazione per repository GitHub pubblico
 REPO_OWNER="manuelbalbi"
@@ -389,7 +390,7 @@ case $TSYNC in
         echo -e "Attivazione funzione ${ORANGE}Sync${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Sincronizzazione con funzione sync di rclone su ${RCLONE_REMOTE}. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Sincronizzazione rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Sync in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato sync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         done
         ;;
@@ -397,14 +398,14 @@ case $TSYNC in
         RCLONE_REMOTE=$(rclone listremotes | head -n 1 | tr -d ':')
         echo -e "Attivazione ${ORANGE}Download mediante funzione sync${RESET}."
         printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Download da OneDrive mediante funzione sync di rclone. Sovrascrive i file locali con quelli remoti incluse cancellazioni!!!" >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Download rclone in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "${LOGFILE}" --filter-from $CONFDW "${RCLONE_REMOTE}:/" $HOME/ 2>&1 | tee --append "$LOGFILE"
+        systemd-inhibit --what=idle:sleep --who="rclone" --why="Download in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "${LOGFILE}" --filter-from $CONFDW "${RCLONE_REMOTE}:/" $HOME/ 2>&1 | tee --append "$LOGFILE"
         printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato download da ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         ;;
     "Bisync") # Bisync tiene aggiornati il serivizio remoto con i dati locali, anche cancellandoli
         echo -e "Attivazione funzione ${ORANGE}Bisync${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --force --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisync in corso" rclone bisync $DRYRUN --force --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         done
         ;;
@@ -412,7 +413,7 @@ case $TSYNC in
         echo -e "Attivazione funzione ${ORANGE}Bisync con resync${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync con resync su ${RCLONE_REMOTE} mediante rclone. Il risultato finale sarà la somma dei file locali e remoti." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisincronizzazione rclone in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resync --max-lock 2m --resync-mode newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Resync in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resync --max-lock 2m --resync-mode newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato resync su ${RCLONE_REMOTE} mediante rclone bisync." >> "$LOGFILE"
         done
         ;;
@@ -420,7 +421,7 @@ case $TSYNC in
         echo -e "Attivazione funzione ${ORANGE}Copy${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Copy in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         done
         ;;
@@ -431,16 +432,16 @@ printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Script rclone v. ${V
 # copia del file di log al termine di tutte le attività
 start_spinner
 for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
-    systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL "$LOGFILE" "${RCLONE_REMOTE}:/"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Copia file di log ${LOGFILE} su ${RCLONE_REMOTE} mediante rclone copy." >> "$LOGFILE"
+    systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy --update --metadata --log-level $LOGLVL "$LOGFILE" "${RCLONE_REMOTE}:/${INSTALLDIR}/"
     printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
 done
 stop_spinner
 
 # Controlla se lo script è il processo leader della sessione (SID == PID)
 if [ "$(ps -o sid= -p $$)" -eq "$$" ]; then
-    echo -e "🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore. ${RED}È possibile chiudere la finestra.${RESET}"
+    echo -e "🔁 Rclone concluso. Consultare il file di log: ${LOGFILE} per eventuali messaggi di errore. ${RED}È possibile chiudere la finestra.${RESET}"
 else
     #   ripristino tput all'uscita
-    trap "tput csr 0 $(($(tput lines) - 1)); clear ; echo '🔁 Rclone concluso. Consultare il file di log: $LOGFILE per eventuali messaggi di errore.'; exit" EXIT
+    trap "tput csr 0 $(($(tput lines) - 1)); clear ; cat ${LOGFILE}; exit" EXIT
 fi
