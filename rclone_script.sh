@@ -6,9 +6,9 @@
 # -------------------------------------------------------------------------------------------------
 
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
-VERSIONE="2.5.2"
+VERSIONE="2.5.5"
 #     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-BUILD=20260208252
+BUILD=20260210255
 
 # Configurazione per repository GitHub pubblico
 REPO_OWNER="manuelbalbi"
@@ -20,7 +20,8 @@ UPDATE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/refs/he
 SCRIPT_PATH="$(readlink -f "$0")"
 
 # Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
-INSTALLDIR="$HOME/.config/rclone_script"
+CONFIGURATION_DIR=".config/rclone_script"
+INSTALLDIR="$HOME/${CONFIGURATION_DIR}"
 TEMP_FILE="temp.zip"
 TEMP_EXTRACT="$INSTALLDIR/tmp"
 LOGNAME="$(date +%F)_log_rclone_${BUILD}.log"
@@ -405,7 +406,7 @@ case $TSYNC in
         echo -e "Attivazione funzione ${ORANGE}Bisync${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisync in corso" rclone bisync $DRYRUN --force --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisync in corso" rclone bisync $DRYRUN --force --compare size,modtime,checksum --conflict-resolve newer --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         done
         ;;
@@ -427,21 +428,24 @@ case $TSYNC in
         ;;
 esac
 
-printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Script rclone v. ${VERSIONE} build ${BUILD} terminato." >> "$LOGFILE"
+printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Funzioni principali rclone v. ${VERSIONE} build ${BUILD} terminate. Avvio copia file di log." >> "$LOGFILE"
 
 # copia del file di log al termine di tutte le attività
 start_spinner
 for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Copia file di log ${LOGFILE} su ${RCLONE_REMOTE} mediante rclone copy." >> "$LOGFILE"
-    systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy --update --metadata --log-level $LOGLVL "$LOGFILE" "${RCLONE_REMOTE}:/${INSTALLDIR}/"
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Copia file di log ${LOGFILE} su ${RCLONE_REMOTE}:${CONFIGURATION_DIR}/${LOGNAME} mediante rclone copyto." >> "$LOGFILE"
+    systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copyto --update --metadata --log-level $LOGLVL "${LOGFILE}" "${RCLONE_REMOTE}:${CONFIGURATION_DIR}/${LOGNAME}"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato copyto su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
 done
 stop_spinner
 
 # Controlla se lo script è il processo leader della sessione (SID == PID)
 if [ "$(ps -o sid= -p $$)" -eq "$$" ]; then
-    echo -e "🔁 Rclone concluso. Consultare il file di log: ${LOGFILE} per eventuali messaggi di errore. ${RED}È possibile chiudere la finestra.${RESET}"
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Script terminato, salvato log ${LOGFILE}." >> ${LOGFILE}
+    clear
+    cat ${LOGFILE}
+    echo -e "${RED}È possibile chiudere la finestra.${RESET}"
 else
-    #   ripristino tput all'uscita
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Script terminato, salvato log ${LOGFILE}." >> ${LOGFILE}
     trap "tput csr 0 $(($(tput lines) - 1)); clear ; cat ${LOGFILE}; exit" EXIT
 fi
