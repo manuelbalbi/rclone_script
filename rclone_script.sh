@@ -6,9 +6,9 @@
 # -------------------------------------------------------------------------------------------------
 
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
-VERSIONE="2.5.5"
+VERSIONE="2.5.6"
 #     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-BUILD=20260210255
+BUILD=20260217256
 
 # Configurazione per repository GitHub pubblico
 REPO_OWNER="manuelbalbi"
@@ -160,29 +160,15 @@ esac
 if [ ! -f "$CONFUP" ]; then
     echo -e "${ORANGE}CREAZIONE:${RESET} $CONF_FILE_UP"
     cat <<EOF > "$CONFUP"
+# ATTENZIONE!!! Qualcosa è andato storto, creo un file di configurazione minima per i file da caricare.
 # Configurazione predefinita per rclone_script definita da v. ${VERSIONE} build ${BUILD} parametro '--filter-from' file $CONF_FILE_UP
 # Configura aggiungendo o cancellando righe con riferimento a https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file
 
-# 1. Inclusioni specifiche
-+ Documenti/GitHub/**
-+ .config/rclone_script
-
-# 2. Esclusione generale dei file/cartelle nascoste
+# Esclusione generale dei file/cartelle nascoste
 - .*{/**,}
 
-# 3. Altre esclusioni e inclusioni standard
-- Documenti/Backup/**
+# Altre esclusioni e inclusioni standard
 + Documenti/**
-- Games/Heroic/**
-+ Games/**
-- Immagini/Windows/**
-- Immagini/2025-12-22 milena smash cake/**
-+ Immagini/**
-+ Musica/**
-+ Pubblici/**
-+ Scrivania/**
-- Video/Radeon ReLive/**
-+ Video/**
 
 # 4. Escludi tutto il resto
 - *
@@ -193,25 +179,15 @@ fi
 if [ ! -f "$CONFDW" ]; then
     echo -e "${ORANGE}CREAZIONE:${RESET} $CONF_FILE_DOWN"
     cat <<EOF > "$CONFDW"
-# Configurazione predefinita per rclone_script definita da v. ${VERSIONE} build ${BUILD} parametro '--filter-from' file $CONF_FILE_DOWN
+# ATTENZIONE!!! Qualcosa è andato storto, creo un file di configurazione minima per i file da scaricare.
+# Configurazione predefinita per rclone_script definita da v. ${VERSIONE} build ${BUILD} parametro '--filter-from' file $CONF_FILE_UP
 # Configura aggiungendo o cancellando righe con riferimento a https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file
 
-# 1. Inclusioni specifiche anche nascoste
-+ Documenti/GitHub/**
-+ .config/rclone_script
-
-# 2. Esclusione generale dei file/cartelle nascoste
+# Esclusione generale dei file/cartelle nascoste
 - .*{/**,}
 
-# 3. Altre esclusioni e inclusioni standard
-- Documenti/Backup/**
+# Altre esclusioni e inclusioni standard
 + Documenti/**
-- Immagini/Windows/**
-+ Immagini/**
-+ Musica/**
-+ Scrivania/**
-- Video/Radeon ReLive/**
-+ Video/**
 
 # 4. Escludi tutto il resto
 - *
@@ -390,8 +366,23 @@ case $TSYNC in
     "Sync") # Sincronizza il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
         echo -e "Attivazione funzione ${ORANGE}Sync${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
+
+            # Intercetta il tipo di servizio --- PER ORA NON INTRODUCE FUNZIONALITÀ MA SOLAMENTE UN CHECK --- DA INTRODURRE FUNZIONALITÀ SPECIFICHE PER OGNI SERVIZIO
+            RCLONETYPE=$(rclone config show ${RCLONE_REMOTE} | grep "^type =" | cut -d' ' -f3)
+            case $RCLONETYPE in
+                "onedrive")
+                    echo ${RCLONETYPE}
+                ;;
+                "drive")
+                    echo ${RCLONETYPE}
+                ;;
+                "mega")
+                    echo ${RCLONETYPE}
+                ;;
+            esac
+
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Sincronizzazione con funzione sync di rclone su ${RCLONE_REMOTE}. Sovrascrive i file remoti con quelli locali incluse cancellazioni." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Sync in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Sync in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato sync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         done
         ;;
@@ -399,43 +390,110 @@ case $TSYNC in
         RCLONE_REMOTE=$(rclone listremotes | head -n 1 | tr -d ':')
         echo -e "Attivazione ${ORANGE}Download mediante funzione sync${RESET}."
         printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "AVVISO" "Download da OneDrive mediante funzione sync di rclone. Sovrascrive i file locali con quelli remoti incluse cancellazioni!!!" >> "$LOGFILE"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Download in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --exclude "${LOGFILE}" --filter-from $CONFDW "${RCLONE_REMOTE}:/" $HOME/ 2>&1 | tee --append "$LOGFILE"
+        systemd-inhibit --what=idle:sleep --who="rclone" --why="Download in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --filter-from $CONFDW "${RCLONE_REMOTE}:/" $HOME/ 2>&1 | tee --append "$LOGFILE"
         printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato download da ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         ;;
     "Bisync") # Bisync tiene aggiornati il serivizio remoto con i dati locali, anche cancellandoli
         echo -e "Attivazione funzione ${ORANGE}Bisync${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
+
+            # Intercetta il tipo di servizio --- PER ORA NON INTRODUCE FUNZIONALITÀ MA SOLAMENTE UN CHECK --- DA INTRODURRE FUNZIONALITÀ SPECIFICHE PER OGNI SERVIZIO
+            RCLONETYPE=$(rclone config show ${RCLONE_REMOTE} | grep "^type =" | cut -d' ' -f3)
+            case $RCLONETYPE in
+                "onedrive")
+                    echo ${RCLONETYPE}
+                ;;
+                "drive")
+                    echo ${RCLONETYPE}
+                ;;
+                "mega")
+                    echo ${RCLONETYPE}
+                ;;
+            esac
+
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisync in corso" rclone bisync $DRYRUN --force --compare size,modtime,checksum --conflict-resolve newer --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Bisync in corso" rclone bisync $DRYRUN --force --conflict-resolve newer --metadata --log-level $LOGLVL --resilient --recover --max-lock 2m --conflict-resolve newer --max-age $VITA --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato bisync su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         done
         ;;
     "Resync") # Resync utilizza rclone bisync resync per effettuare la somme dei file presenti sul locale e sul remoto
         echo -e "Attivazione funzione ${ORANGE}Bisync con resync${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
+
+
+            # Intercetta il tipo di servizio --- PER ORA NON INTRODUCE FUNZIONALITÀ MA SOLAMENTE UN CHECK --- DA INTRODURRE FUNZIONALITÀ SPECIFICHE PER OGNI SERVIZIO
+            RCLONETYPE=$(rclone config show ${RCLONE_REMOTE} | grep "^type =" | cut -d' ' -f3)
+            case $RCLONETYPE in
+                "onedrive")
+                    echo ${RCLONETYPE}
+                ;;
+                "drive")
+                    echo ${RCLONETYPE}
+                ;;
+                "mega")
+                    echo ${RCLONETYPE}
+                ;;
+            esac
+
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione bisync con resync su ${RCLONE_REMOTE} mediante rclone. Il risultato finale sarà la somma dei file locali e remoti." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Resync in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resync --max-lock 2m --resync-mode newer --max-age $VITA --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Resync in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resync --max-lock 2m --resync-mode newer --max-age $VITA --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato resync su ${RCLONE_REMOTE} mediante rclone bisync." >> "$LOGFILE"
         done
         ;;
     *) # Copia il contenuto dei filtri dichiarati in $CONFUP sui servizi remoti
         echo -e "Attivazione funzione ${ORANGE}Copy${RESET}."
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
+
+
+            # Intercetta il tipo di servizio --- PER ORA NON INTRODUCE FUNZIONALITÀ MA SOLAMENTE UN CHECK --- DA INTRODURRE FUNZIONALITÀ SPECIFICHE PER OGNI SERVIZIO
+            RCLONETYPE=$(rclone config show ${RCLONE_REMOTE} | grep "^type =" | cut -d' ' -f3)
+            case $RCLONETYPE in
+                "onedrive")
+                    echo ${RCLONETYPE}
+                ;;
+                "drive")
+                    echo ${RCLONETYPE}
+                ;;
+                "mega")
+                    echo ${RCLONETYPE}
+                ;;
+            esac
+
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Attivazione funzione copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Copy in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --exclude "**/$(basename "$LOGFILE")" --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Copy in corso" rclone copy $DRYRUN --update --metadata --log-level $LOGLVL --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato copy su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
         done
         ;;
 esac
 
-printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Funzioni principali rclone v. ${VERSIONE} build ${BUILD} terminate. Avvio copia file di log." >> "$LOGFILE"
+printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Funzioni principali rclone v. ${VERSIONE} build ${BUILD} terminate. Avvio copia cartella ${INSTALLDIR} su ${RCLONE_REMOTE}/${CONFIGURATION_DIR}" >> "$LOGFILE"
 
 # copia del file di log al termine di tutte le attività
 start_spinner
 for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Copia file di log ${LOGFILE} su ${RCLONE_REMOTE}:${CONFIGURATION_DIR}/${LOGNAME} mediante rclone copyto." >> "$LOGFILE"
-    systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copyto --update --metadata --log-level $LOGLVL "${LOGFILE}" "${RCLONE_REMOTE}:${CONFIGURATION_DIR}/${LOGNAME}"
-    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato copyto su ${RCLONE_REMOTE} mediante rclone." >> "$LOGFILE"
+
+    # Intercetta il tipo di servizio --- PER ORA NON INTRODUCE FUNZIONALITÀ MA SOLAMENTE UN CHECK --- DA INTRODURRE FUNZIONALITÀ SPECIFICHE PER OGNI SERVIZIO
+    RCLONETYPE=$(rclone config show ${RCLONE_REMOTE} | grep "^type =" | cut -d' ' -f3)
+    case $RCLONETYPE in
+        "onedrive")
+            echo ${RCLONETYPE}
+        ;;
+        "drive")
+            echo ${RCLONETYPE}
+        ;;
+        "mega")
+            echo ${RCLONETYPE}
+        ;;
+    esac
+
+    # Copia l'intera cartella di configurazione
+    systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copy --no-console --update --metadata --log-level $LOGLVL "${INSTALLDIR}" "${RCLONE_REMOTE}:${CONFIGURATION_DIR}"
+    sleep 0.5 # facciamo in modo che il file di log sia presumibilmente libero
+    printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "INFO" "Terminato copy cartella ${INSTALLDIR} su ${RCLONE_REMOTE}/${CONFIGURATION_DIR} mediante rclone." >> "$LOGFILE"
+
+    # AGGIUNGERE RIGA COPYTO PER COPIARE IL FILE DI LOG
+    sleep 0.5 # facciamo in modo che il file di log sia presumibilmente libero
+    systemd-inhibit --what=idle:sleep --who="rclone" --why="Copia rclone in corso" rclone copyto --no-console --update --metadata --log-level $LOGLVL "${LOGFILE}" "${RCLONE_REMOTE}:${CONFIGURATION_DIR}/${LOGNAME}"
 done
 stop_spinner
 

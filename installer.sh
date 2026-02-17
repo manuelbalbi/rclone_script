@@ -47,7 +47,6 @@ if [ ! -f "$CONFUP" ]; then
 # Please refer to https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file for configuring rsync filters
 
 # Hidden paths
-+ .config/rclone_script/**
 - .*{/**,}
 
 # Including
