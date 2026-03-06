@@ -7,7 +7,7 @@ It's written for my needs right now, the goal is to make it a useful generic scr
 
 Starting from version *2.2* build _20260128_ the script search the github repository to auto update itself.<br>
 Starting from version *2.5* build _20260205_ the script search for rclone remotes to automatically use all of the listed remotes to sync/bisync/resync/copy data. The _download_ function sync only from the first entry in the remote list.<br>
-Starting form version *2.6* build _20260304_ the script checks for dedicated 'rclone commands' specific to the relative remote service in use.<br> 
+Starting form version *2.6* build _20260304_ the script checks for dedicated `rclone commands` specific to the relative remote service in use.<br> 
 
 ## Features
 

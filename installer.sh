@@ -6,6 +6,12 @@
 
 set -e # interrompe immediatamente al primo errore
 
+# Funzione CLEANUP per pulire i file di log
+cleanup() {
+    rm -rf "$INSTALLDIR/$TEMP_FILE" "$INSTALLDIR/$REPO_NAME-$BRANCH" "$INSTALLDIR/$REPO_NAME-main"
+}
+trap cleanup EXIT # Esegue la funzione CLEANUP in caso di chiusura inaspettata dello script
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,12 +21,9 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 BOLD='\033[1m'
 
-REPO_OWNER="manuelbalbi"
 REPO_NAME="rclone_script"
 BRANCH="main"
-GITFILE="vars.sh"
-GITPACKAGE=("var.sh" "rclone_script.sh")
-UPDATE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/refs/heads/main/${GITFILE}" # https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.sh
+UPDATE_URL="hhttps://raw.githubusercontent.com/manuelbalbi/${REPO_NAME}/refs/heads/${BRANCH}/rclone_script.sh"
 SCRIPT_PATH="$(readlink -f "$0")"
 
 # Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
@@ -77,46 +80,43 @@ if ! command_exists curl; then
     error "${BOLD}curl${NC} non è installato, prima di procedere è necessario installare curl."
 fi
 
-echo "Download in corso..."
-curl --fail --location --verbose "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/$BRANCH.zip" -o "$INSTALLDIR/$TEMP_FILE"
+info "Download in corso..."
+curl --fail --location --verbose "https://github.com/manuelbalbi/${REPO_NAME}/archive/refs/heads/${BRANCH}.zip" -o "${INSTALLDIR}/${TEMP_FILE}"
 
 if ! command_exists unzip; then
     error "${BOLD}unzip${NC} non è installato, prima di procedere è necessario installare unzip."
 fi
-unzip -o "$INSTALLDIR/$TEMP_FILE" -d "$INSTALLDIR"
+unzip -o "${INSTALLDIR}/${TEMP_FILE}" -d "${INSTALLDIR}"
 
 # Usiamo il wildcard * per essere sicuri di beccare la cartella estratta
-mv -f "$INSTALLDIR/$REPO_NAME-$BRANCH/"* "$INSTALLDIR/" 2>/dev/null || mv -f "$INSTALLDIR/$REPO_NAME-main/"* "$INSTALLDIR/"
+mv -f "${INSTALLDIR}/${REPO_NAME}-${BRANCH}/"* "${INSTALLDIR}/" 2>/dev/null || mv -f "${INSTALLDIR}/${REPO_NAME}-main/"* "${INSTALLDIR}/"
 
-rm -rf "$INSTALLDIR/$TEMP_FILE" "$INSTALLDIR/$REPO_NAME-$BRANCH" "$INSTALLDIR/$REPO_NAME-main"
+cleanup
 
-chmod +x "$INSTALLDIR/rclone_script.sh"
+chmod +x "${INSTALLDIR}/rclone_script.sh"
 
 SUDO=""
 if [ "$(id -u)" -ne 0 ] && command_exists sudo; then
     SUDO="sudo"
 fi
-$SUDO ln -sf "$INSTALLDIR/rclone_script.sh" /usr/local/bin/rclone-script
+$SUDO ln -sf "${INSTALLDIR}/rclone_script.sh" /usr/local/bin/rclone-script
 
-echo "Installazione completata con successo."
+success "Installazione completata con successo."
 
 # -------------------------------------------------------------------------------------------------
 # Create missing config files
 if [ ! -f "$CONFUP" ]; then
-    echo -e "${ORANGE}CREAZIONE:${RESET} $CONF_FILE_UP"
+    info "CREAZIONE: ${CONF_FILE_UP}"
     cat <<EOF > "$CONFUP"
-# rclone_script default configuration created for v. ${VERSIONE} build ${BUILD} file $CONF_FILE_UP
+# rclone_script default configuration created for v. ${VERSIONE} build ${BUILD} file ${CONF_FILE_UP}
 # Please refer to https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file for configuring rsync filters
 
 # Hidden paths
 - .*{/**,}
 
 # Including
-- Documenti/backup/**
 + Documenti/**
 + Games/**
-- Immagini/Windows/**
-- Immagini/2025-12-22 milena smash cake/**
 + Immagini/**
 + Musica/**
 + Pubblici/**
@@ -129,9 +129,9 @@ EOF
 fi
 
 if [ ! -f "$CONFDW" ]; then
-    echo -e "${ORANGE}CREAZIONE:${RESET} $CONF_FILE_DOWN"
+    info "CREAZIONE: ${CONF_FILE_DOWN}"
     cat <<EOF > "$CONFDW"
-# rclone_script default configuration created for v. ${VERSIONE} build ${BUILD} file $CONF_FILE_UP
+# rclone_script default configuration created for v. ${VERSIONE} build ${BUILD} file ${CONF_FILE_UP}
 # Please refer to https://rclone.org/filtering/#filter-from-read-filtering-patterns-from-a-file for configuring rsync filters
 
 # Hidden paths
@@ -139,16 +139,12 @@ if [ ! -f "$CONFDW" ]; then
 - .*{/**,}
 
 # Including
-- Documenti/backup/**
 + Documenti/**
 + Games/**
-- Immagini/Windows/**
-- Immagini/2025-12-22 milena smash cake/**
 + Immagini/**
 + Musica/**
 + Pubblici/**
 + Scrivania/**
-- Video/Radeon ReLive/**
 + Video/**
 
 # Exclude everything else
@@ -158,14 +154,12 @@ fi
 
 # Controllo presenza dipendenze
 REQUISITI=(
-"rclone"
-"rsync"
+    "rclone"
 )
 
 for bin in "${REQUISITI[@]}"; do
     if ! command -v "$bin" &> /dev/null; then
-        echo -e "Script interrotto, non è installato il comando $bin."
-        printf "%(%Y-%m-%d)T %(%H:%M:%S)T %-6s: %s\n" -1 -1 "ERRORE" "MANCA requisito $bin" >> "$LOGFILE"
+        error "Script interrotto, manca requisito $bin"
         exit 1
     fi
 done

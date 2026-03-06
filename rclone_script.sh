@@ -2,13 +2,13 @@
 
 # -------------------------------------------------------------------------------------------------
 # --------------- SCRIPT DI SINCRONIZZAZIONE CON I SERVIZI CLOUD UTILIZZANDO rclone ---------------
-# ---------------- ATTIVAZIONE DI BACKUP E COPIA DI FILE SELEZIONATI CON rsync / cp ---------------
+# -------------------- ATTIVAZIONE DI BACKUP E COPIA DI FILE SELEZIONATI CON cp -------------------
 # -------------------------------------------------------------------------------------------------
 
 # Dichiarazione versione script per confronto aggiornamento su GitHub in formato AAAAMMGG e per stampa su file e log
 VERSIONE="2.6"
 #     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-BUILD=20260304260
+BUILD=20260306260
 
 # Configurazione per repository GitHub pubblico
 REPO_OWNER="manuelbalbi"
@@ -22,7 +22,6 @@ SCRIPT_PATH="$(readlink -f "$0")"
 # Configurazione percorsi, file di log, file di configurazione e tempi di vita dei documenti di sincronizzazione e di pulizia backlog
 CONFIGURATION_DIR=".config/rclone_script"
 INSTALLDIR="$HOME/${CONFIGURATION_DIR}"
-TEMP_FILE="temp.zip"
 TEMP_EXTRACT="$INSTALLDIR/tmp"
 LOGNAME="$(date +%F)_log_rclone_${BUILD}.log"
 LOGFILE="${INSTALLDIR}/${LOGNAME}"
@@ -31,8 +30,6 @@ CONF_FILE_DOWN="rclone_script_download.conf"
 CONF_DIR="config_files"
 CONFUP="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_UP}"
 CONFDW="${INSTALLDIR}/${CONF_DIR}/${CONF_FILE_DOWN}"
-CONFSERVICE="$HOME/.config/systemd/user/rclone-bisync.service"
-CONFTIMER="$HOME/.config/systemd/user/rclone-bisync.timer"
 VITA="90d" # configurazione vita dei documenti da sincronizzare con bisync
 TFINDFLUSH="30" # tempo in giorni per -mtime su comando find per cancellazione file di log / pulizia backlog vecchio
 LOCKFILEDIR="$HOME/.cache/rclone/bisync/" # riferimento a https://rclone.org/bisync/#lock-file
@@ -246,10 +243,9 @@ if [ ! -f "$CONFDW" ]; then
 EOF
 fi
 
-# Controllo presenza dipendenze
+# Controllo presenza dipendenze, aggiungere una riga per nuove dipendenze
 REQUISITI=(
     "rclone"
-    "rsync"
 )
 
 for bin in "${REQUISITI[@]}"; do
@@ -300,17 +296,6 @@ display_message() {
 # -------------------------------------- INIZIO CORPO SCRIPT --------------------------------------
 # -------------------------------------------------------------------------------------------------
 
-# ---------------------------------------- BACKUP DOCUMENTI ---------------------------------------
-echo -n "🔄 Backup documenti contenuti nella cartella Documenti, "
-# Verifica presenza funzione custom/standard su rsync e relativa configurazione
-if rsync --help | grep -q "detect-renamed"; then
-    info "Uso --detect-renamed come funzione custom."
-    EXTRA_FLAGS="--detect-renamed"
-else
-    info "Uso --fuzzy$ come funzione standard."
-    EXTRA_FLAGS="--fuzzy"
-fi
-
 # Sposta gli screenshot creati in COSMIC nella cartella desiderata
 mv --verbose $HOME/Immagini/Screenshot* $HOME/Immagini/Schermate 2> >(while read -r line; do
     info "$line"
@@ -324,7 +309,7 @@ declare -A mappe=(
 )
 
 for src in "${!mappe[@]}"; do
-    info "Copia in locale da $src a ${mappe[$src]}..."
+    info "Copia in locale: $src ${YELLOW}==>${RESET} ${mappe[$src]}..."
 
     # Crea la directory di destinazione se non esiste
     mkdir -p "${mappe[$src]}"
@@ -417,7 +402,7 @@ case $TSYNC in
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
             tipo_servizio
             info "Sincronizzazione con funzione sync di rclone su ${RCLONE_REMOTE}. Sovrascrive i file remoti con quelli locali incluse cancellazioni."
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Sync in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Sync in corso" rclone sync $DRYRUN "${LIVELLO_SERVIZIO[@]}" --update --metadata --log-level $LOGLVL --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             info "Terminato sync su ${RCLONE_REMOTE} mediante rclone."
         done
 
@@ -429,7 +414,7 @@ case $TSYNC in
     "Download") # Effettua il download integrale dal primo servizio remoto dichiarato in rclone secondo i filtri stabiliti in $CONFDW
         RCLONE_REMOTE=$(rclone listremotes | head -n 1 | tr -d ':')
         warn "Download da OneDrive mediante funzione sync di rclone. Sovrascrive i file locali con quelli remoti incluse cancellazioni!!!"
-        systemd-inhibit --what=idle:sleep --who="rclone" --why="Download in corso" rclone sync $DRYRUN --update --metadata --log-level $LOGLVL --filter-from $CONFDW "${RCLONE_REMOTE}:/" $HOME/ 2>&1 | tee --append "$LOGFILE"
+        systemd-inhibit --what=idle:sleep --who="rclone" --why="Download in corso" rclone sync $DRYRUN "${LIVELLO_SERVIZIO[@]}" --update --metadata --log-level $LOGLVL --filter-from $CONFDW "${RCLONE_REMOTE}:/" $HOME/ 2>&1 | tee --append "$LOGFILE"
         info "Terminato download da ${RCLONE_REMOTE} mediante rclone."
         ;;
     "Bisync") # Bisync tiene aggiornati il serivizio remoto con i dati locali, anche cancellandoli
@@ -451,7 +436,7 @@ case $TSYNC in
         for RCLONE_REMOTE in $(rclone listremotes | tr -d ':'); do
             tipo_servizio
             info "INFO" "Attivazione funzione bisync con resync su ${RCLONE_REMOTE} mediante rclone. Il risultato finale sarà la somma dei file locali e remoti."
-            systemd-inhibit --what=idle:sleep --who="rclone" --why="Resync in corso" rclone bisync $DRYRUN --metadata --log-level $LOGLVL --resync --max-lock 2m --resync-mode newer --max-age $VITA --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
+            systemd-inhibit --what=idle:sleep --who="rclone" --why="Resync in corso" rclone bisync $DRYRUN "${LIVELLO_SERVIZIO[@]}" --metadata --log-level $LOGLVL --resync --max-lock 2m --resync-mode newer --max-age $VITA --filter-from $CONFUP $HOME/ "${RCLONE_REMOTE}:/" 2>&1 | tee --append "$LOGFILE"
             info "Terminato resync su ${RCLONE_REMOTE} mediante rclone bisync."
         done
 
