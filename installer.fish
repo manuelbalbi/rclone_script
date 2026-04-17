@@ -79,7 +79,7 @@ function installer
     mkdir -p ~/.config/fish/functions/; and info "Cartella funzioni esistente."
 
     # Copia lo script
-    cp --force --link "$rclone_script_config_path/rclone_script.fish" "$HOME/$install_path/rclone_script.fish"; and success "Installazione script di fish completata con successo."
+    cp --force --link "$rclone_script_config_path/rclone_script.fish" "$install_path/rclone_script.fish"; and success "Installazione script di fish completata con successo."
 
     # --- Creazione file di configurazione (HereDocs in Fish) ---
     if not test -f "$config_file_upload_path"
