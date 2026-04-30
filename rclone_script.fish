@@ -2,9 +2,9 @@
 
 function rclone_script # è la "function main" per lo script salvato in .config/fish/functions/
     # --- Variabili di Versione ---
-    set -g script_version "3.0"
+    set -g script_version "3.0.1"
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-    set -g build_revision 20260403300
+    set -g build_revision 20260429301
 
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
@@ -99,7 +99,7 @@ function rclone_script # è la "function main" per lo script salvato in .config/
             case drive
                 set -a base_args --drive-skip-checksum-gphotos --drive-skip-gdocs --compare modtime,size,checksum
                 rclone bisync "$HOME/" "$rclone_remote:/" $base_args 2>&1 | tee -a $log_file_full_path
-            case *
+            case '*' # v. 3.0.1 minor fix
                 set -a base_args --compare modtime,size
                 rclone bisync "$HOME/" "$rclone_remote:/" $base_args 2>&1 | tee -a $log_file_full_path
         end
@@ -123,29 +123,37 @@ function rclone_script # è la "function main" per lo script salvato in .config/
         exec fish "$script_path" $argv; return 0
     end
 
-    # Verifica configurazione
+    # Verifica presenza file di configurazione
     if not test -f $filter_config; error "File filtri non trovato in $filter_config"; end
+
+    # Verifica presenza almeno un servizio remoto nella configurazione di rclone
     set remotes (rclone listremotes | string replace -a ':' '')
-    if test -z $remotes; error "Nessun rclon-remote configurato."; return 1; end
+    if not set -q remotes[1]
+        error "Nessun rclone-remote configurato."
+        return 1
+    end
 
-    # Impostazione flag dai parametri
+    # Impostazione flag dai parametri, in automatico imposta dry_args con il valore --dry-run
     set -l dry_args --dry-run
-    if set -q _flag_no_dry_run
-        set dry_args # Svuota la variabile
-        info "Dry-run DISATTIVATO."
-    else
-        set dry_args --dry-run
-        info "Dry-run ATTIVATO."
-    end
+    set -q _flag_no_dry_run; and set dry_args; and info "Modalità dry-run disattivata."
+    # if set -q _flag_no_dry_run
+    #     set dry_args # Svuota la variabile
+    #     info "Dry-run DISATTIVATO."
+    # else
+    #     set dry_args --dry-run
+    #     info "Dry-run ATTIVATO."
+    # end
 
+    # Impostazione modo, in automatico imposta la modalità con funzione bisync
     set -l modo bisync
-    if set -q _flag_resync
-        set modo resync
-        info "Modalità bisync con RESYNC attivata."
-    else
-        set modo bisync
-        info "Modalità bisync."
-    end
+    set -q _flag_resync; and set modo resync; and info "Modalità RESYNC attivata."
+    # if set -q _flag_resync
+    #     set modo resync
+    #     info "Modalità bisync con RESYNC attivata."
+    # else
+    #     set modo bisync
+    #     info "Modalità bisync."
+    # end
 
     # Ciclo sui remoti
     for remote in $remotes
