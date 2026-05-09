@@ -2,9 +2,9 @@
 
 function rclone_script # è la "function main" per lo script salvato in .config/fish/functions/
     # --- Variabili di Versione ---
-    set -g script_version "3.0.1"
+    set -g script_version "3.0.2"
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-    set -g build_revision 20260429301
+    set -g build_revision 20260506302
 
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
@@ -136,24 +136,10 @@ function rclone_script # è la "function main" per lo script salvato in .config/
     # Impostazione flag dai parametri, in automatico imposta dry_args con il valore --dry-run
     set -l dry_args --dry-run
     set -q _flag_no_dry_run; and set dry_args; and info "Modalità dry-run disattivata."
-    # if set -q _flag_no_dry_run
-    #     set dry_args # Svuota la variabile
-    #     info "Dry-run DISATTIVATO."
-    # else
-    #     set dry_args --dry-run
-    #     info "Dry-run ATTIVATO."
-    # end
 
     # Impostazione modo, in automatico imposta la modalità con funzione bisync
     set -l modo bisync
     set -q _flag_resync; and set modo resync; and info "Modalità RESYNC attivata."
-    # if set -q _flag_resync
-    #     set modo resync
-    #     info "Modalità bisync con RESYNC attivata."
-    # else
-    #     set modo bisync
-    #     info "Modalità bisync."
-    # end
 
     # Ciclo sui remoti
     for remote in $remotes
@@ -169,5 +155,7 @@ function rclone_script # è la "function main" per lo script salvato in .config/
     end
 
     cleanup
+
+    cat $log_file_full_path # v. 3.0.2 cat log file after cleanup
 
 end
