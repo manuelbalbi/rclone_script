@@ -2,9 +2,9 @@
 
 function rclone_script # è la "function main" per lo script salvato in .config/fish/functions/
     # --- Variabili di Versione ---
-    set -g script_version "3.0.2"
+    set -g script_version "3.0.3"
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-    set -g build_revision 20260506302
+    set -g build_revision 20260510303
 
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
@@ -95,14 +95,16 @@ function rclone_script # è la "function main" per lo script salvato in .config/
         switch $cmd_type
             case onedrive
                 set -a base_args --transfers 1 --onedrive-chunk-size 128000Ki --onedrive-av-override --fast-list --onedrive-delta --compare modtime,size,checksum
-                rclone bisync "$HOME/" "$rclone_remote:/" $base_args 2>&1 | tee -a $log_file_full_path
             case drive
                 set -a base_args --drive-skip-checksum-gphotos --drive-skip-gdocs --compare modtime,size,checksum
-                rclone bisync "$HOME/" "$rclone_remote:/" $base_args 2>&1 | tee -a $log_file_full_path
+            case iclouddrive # v. 3.0.3 disable HTTP2 for iCloud Drive
+                set -a base_args --disable-http2
             case '*' # v. 3.0.1 minor fix
                 set -a base_args --compare modtime,size
-                rclone bisync "$HOME/" "$rclone_remote:/" $base_args 2>&1 | tee -a $log_file_full_path
         end
+
+        # v. 3.0.3 razionalizazione script
+        rclone bisync "$HOME/" "$rclone_remote:/" $base_args 2>&1 | tee -a $log_file_full_path
     end
 
     # --- Core dello Script ---
