@@ -53,7 +53,7 @@ function installer
     end
 
     # Controllo presenza dipendenze
-    set dependecies_needed rclone curl unzip
+    set dependecies_needed rclone curl unzip figlet lolcat
 
     for bin in $dependecies_needed
         if not type -q $bin
