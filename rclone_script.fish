@@ -1,8 +1,8 @@
 function rclone_script
     # --- Variabili di Versione ---
-    set -g script_version "3.2.0"
+    set -g script_version "3.2.1"
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-    set -g build_revision 20260528320
+    set -g build_revision 20260530321
 
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
@@ -20,12 +20,13 @@ function rclone_script
     set -g log_filename (date +%F)"_log_rclone_"$build_revision".log"
     set -g log_file_full_path "$install_path/$log_filename"
     set -g filter_config "$install_path/config_files/rclone_script_upload.conf"
-    set -g git_update_url "https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/fish/rclone_script.fish"
+    set -g git_update_url "    https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.fish
+"
     set -g script_path (functions --details rclone_script)
 
-    # --- Variabili di livello di servizio
-    set -l log_level --log-level INFO # set default log level INFO
-    set -l lifespan --max-age 90y # set default lifespan = 90 years
+    # --- Variabili di livello di servizio, set global value in v. 3.2.1
+    set -g log_level --log-level INFO # set default log level INFO
+    set -g lifespan --max-age 90y # set default lifespan = 90 years
 
     # --- Funzioni di Sistema ---
 
