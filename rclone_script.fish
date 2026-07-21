@@ -1,8 +1,8 @@
 function rclone_script
     # --- Variabili di Versione ---
-    set -g script_version "3.2.1"
+    set -g script_version "3.2.2"
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-    set -g build_revision 20260530321
+    set -g build_revision 20260606322
 
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
@@ -102,25 +102,27 @@ function rclone_script
         set -l cmd_type (rclone config show $rclone_remote | grep "^type =" | string split " " -f3)
         info "Esecuzione $modo su $rclone_remote (tipo di servizio remoto $cmd_type)..."
 
-        set -l base_args $dryrunonoff --contimeout 1m --low-level-retries 10 --force --metadata --filter-from $filter_config
+        set -l base_args $dryrunonoff --contimeout 1m --low-level-retries 10 --force --metadata --max-lock 2m --filter-from $filter_config
         set -a base_args $log_level $lifespan
 
         switch $modo
             case resync
-                set -a base_args --resync --resync-mode newer --max-lock 2m
+                set -a base_args --resync --resync-mode newer
             case bisync
-                set -a base_args --resilient --recover --conflict-resolve newer --max-lock 2m
+                set -a base_args --resilient --recover
         end
 
         switch $cmd_type
             case onedrive
-                set -a base_args --transfers 1 --onedrive-chunk-size 128000Ki --onedrive-av-override --fast-list --onedrive-delta --compare modtime,size,checksum
+                set -a base_args --transfers 1 --onedrive-chunk-size 128000Ki --onedrive-av-override --fast-list --onedrive-delta --compare modtime,size,checksum --conflict-resolve newer
             case drive
-                set -a base_args --drive-skip-checksum-gphotos --drive-skip-gdocs --compare modtime,size,checksum
+                set -a base_args --drive-skip-checksum-gphotos --drive-skip-gdocs --compare --conflict-resolve newer modtime,size,checksum
             case iclouddrive # v. 3.0.3 disable HTTP2 for iCloud Drive
-                set -a base_args --disable-http2
+                set -a base_args --disable-http2 --conflict-resolve newer --ignore-listing-checksum
+            case mega # v. 3.2.2
+                set -a base_args --size-only --ignore-listing-checksum --mega-use-https --conflict-resolve path1
             case '*' # v. 3.0.1 minor fix
-                set -a base_args --compare modtime,size
+                set -a base_args --compare modtime,size --conflict-resolve newer
         end
 
         # v. 3.0.3 razionalizazione script
