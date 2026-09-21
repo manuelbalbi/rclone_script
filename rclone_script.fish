@@ -1,8 +1,8 @@
 function rclone_script
     # --- Variabili di Versione ---
-    set -g script_version "3.2.2"
+    set -g script_version "3.3.1"
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-    set -g build_revision 20260606322
+    set -g build_revision 20260921331
 
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
@@ -20,8 +20,7 @@ function rclone_script
     set -g log_filename (date +%F)"_log_rclone_"$build_revision".log"
     set -g log_file_full_path "$install_path/$log_filename"
     set -g filter_config "$install_path/config_files/rclone_script_upload.conf"
-    set -g git_update_url "    https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.fish
-"
+    set -g git_update_url "https://raw.githubusercontent.com/manuelbalbi/rclone_script/refs/heads/main/rclone_script.fish"
     set -g script_path (functions --details rclone_script)
 
     # --- Variabili di livello di servizio, set global value in v. 3.2.1
@@ -66,14 +65,17 @@ function rclone_script
         return 1
     end
 
-    function start_log # v. 3.2.0
-        set -l stringa_apertura_chiusura "****************************************************************************************************" # header line
-        set -l stringa_padding "*" # column line
-        set -l larghezza_totale (string length "$stringa_apertura_chiusura")
-        set -l larghezza_padding (math "2 * "(string length "$stringa_padding"))
-        set -l larghezza_interna (math $larghezza_totale - $larghezza_padding)
+    function start_log # introdotto v. 3.2.0, modificato v. 3.3.0
+        set -l stringa_padding "*"
+        set -l larghezza_finestra_terminale (tput cols) # v. 3.3.1
+        set -l larghezza_padding (string length $stringa_padding)
+        set -l larghezza_totale (math "$larghezza_finestra_terminale - 4") # la lunghezza iniziale della string nella funzione "info" è di 4 caratteri, corretto in v. 3.3.1
+        set -l larghezza_interna (math "$larghezza_totale - 2 * $larghezza_padding") # v. 3.3.1
+
+        set -l stringa_apertura_chiusura (string repeat -n $larghezza_totale "$stringa_padding")
         set -l testo_base "Avvio script v. $script_version build $build_revision."
         set -l stringa_centrata $stringa_padding(string pad -C -w $larghezza_interna "$testo_base")$stringa_padding
+
         info $stringa_apertura_chiusura
         info $stringa_centrata
         info $stringa_apertura_chiusura
@@ -153,7 +155,7 @@ Options:
 
     # argparse lifespan with --max-age (default set by lifespan variable) - v. 3.2.0
     if set -ql _flag_time
-        set lifespan $_flag_time[-1] # lifespan set by argparsing
+        set -g lifespan --max-age $_flag_time[-1] # lifespan set by argparsing, fixed in v. 3.2.3
     end
 
     banner_function
