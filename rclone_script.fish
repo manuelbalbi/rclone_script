@@ -1,8 +1,8 @@
 function rclone_script
     # --- Variabili di Versione ---
-    set -g script_version "3.3.1"
+    set -g script_version "3.3.2"
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-    set -g build_revision 20260921331
+    set -g build_revision 20261002332
 
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
@@ -132,8 +132,8 @@ function rclone_script
     end
 
     # --- Core dello Script ---
-    # argparsing arguments, modified by v. 3.2.0
-    argparse h/help n/no-dry-run r/resync 't/time=' d/debug -- $argv
+    # argparsing arguments, modified by v. 3.2.0 / added "info" and "progress" in 3.3.2 as boolean values with -x flag
+    argparse -x d,i,p 'd/debug' 'i/info' 'p/progress' 'h/help' 'n/no-dry-run' 'r/resync' 't/time=' -- $argv
     or return 1
 
     # argparse help value
@@ -143,15 +143,23 @@ function rclone_script
 Options:
 -h, --help        Show this help message
 -d, --debug       Set DEBUG verbosity in rclone
+-i, --info        Set INFO verbosity in rclone
 -r, --resync      Set resync on bisync in rclone
 -t, --time=VALUE  Set max life of files (e.g., -t 90d or --time=1y default is 90 years)
--n, --no-dry-run  Run the script without dry-run safety"
+-n, --no-dry-run  Run the script without dry-run safety
+-p, --progress    Show progress instead of DEBUG or INFO verbosity"
 
         return 1
     end
+    
+    # argparse progress v. 3.3.2
+    set -ql _flag_progress; and set log_level --progress
 
     # argparse debug with --log-level attribute v. 3.2.0
     set -ql _flag_debug; and set log_level --log-level DEBUG
+
+    # argparse info with --log-level attribute v. 3.3.2
+    set -ql _flag_info; and set log_level --log-level INFO
 
     # argparse lifespan with --max-age (default set by lifespan variable) - v. 3.2.0
     if set -ql _flag_time
