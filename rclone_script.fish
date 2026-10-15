@@ -1,8 +1,8 @@
 function rclone_script
     # --- Variabili di Versione ---
-    set -g script_version "3.3.2"
+    set -g script_version "3.4.0"
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
-    set -g build_revision 20261002332
+    set -g build_revision 20261009340
 
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
@@ -32,6 +32,7 @@ function rclone_script
     function update_check # v. 3.2.0
         info "Verifica aggiornamento..."
         set -l remote_rev (curl -sL $git_update_url | string match -r -g 'build_revision\s+(\d+)') # v. 3.2.0
+        info "Versione rilevata su GitHub: $remote_rev"
         if test -n "$remote_rev"; and test "$remote_rev" -gt "$build_revision"
             warn "Aggiornamento alla build $remote_rev in corso..."
             curl -sL $git_update_url -o "$script_path.tmp"; and mv "$script_path.tmp" $script_path
@@ -116,13 +117,19 @@ function rclone_script
 
         switch $cmd_type
             case onedrive
+                # v. 3.4.0 introduzione dedupe
+                rclone dedupe "$rclone_remote:/" --dedupe-mode rename 2>&1 | tee -a $log_file_full_path
                 set -a base_args --transfers 1 --onedrive-chunk-size 128000Ki --onedrive-av-override --fast-list --onedrive-delta --compare modtime,size,checksum --conflict-resolve newer
             case drive
+                # v. 3.4.0 introduzione dedupe
+                rclone dedupe "$rclone_remote:/" --dedupe-mode rename 2>&1 | tee -a $log_file_full_path
                 set -a base_args --drive-skip-checksum-gphotos --drive-skip-gdocs --compare --conflict-resolve newer modtime,size,checksum
             case iclouddrive # v. 3.0.3 disable HTTP2 for iCloud Drive
                 set -a base_args --disable-http2 --conflict-resolve newer --ignore-listing-checksum
             case mega # v. 3.2.2
-                set -a base_args --size-only --ignore-listing-checksum --mega-use-https --conflict-resolve path1
+                # v. 3.4.0 introduzione dedupe
+                rclone dedupe "$rclone_remote:/" --dedupe-mode rename 2>&1 | tee -a $log_file_full_path
+                set -a base_args --size-only --mega-use-https --conflict-resolve path1
             case '*' # v. 3.0.1 minor fix
                 set -a base_args --compare modtime,size --conflict-resolve newer
         end
