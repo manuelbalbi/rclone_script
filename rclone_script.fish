@@ -4,6 +4,7 @@ function rclone_script
     #                     ⡤⠤⠤⢤⡤⢤⡤⢤⡤⠤⢤ AAAAMMGGVVV
     set -g build_revision 20261030342
 
+
     # --- Colori e Stili ---
     set -g colour_green (set_color 61bb46)
     set -g colour_yellow (set_color f5d300)
