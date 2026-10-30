@@ -10,7 +10,7 @@ function installer
     set -g rclone_script_config_path "$HOME/.config/rclone_script"
     set -g temp_file "temp.zip"
     set -g config_files_path "config_files"
-    set -g config_file_upload "rclone_script_upload.conf"
+    set -g config_file_upload "rclone_script_filter_config_$hostname.conf" # according to rclone_script v. 3.4.1
     set -g config_file_upload_path "$rclone_script_config_path/$config_files_path/$config_file_upload"
     set -g install_path "$HOME/.config/fish/functions/"
 
